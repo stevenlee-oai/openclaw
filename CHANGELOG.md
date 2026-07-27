@@ -6,23 +6,43 @@ Docs: https://docs.openclaw.ai
 
 ### Highlights
 
-- **Agent and provider runtimes:** expand runtime selection, session continuity, and model-provider reliability across embedded and CLI-backed agents.
-- **Control UI workflows:** improve chat, session, workspace, dashboard, and operator controls across desktop and browser surfaces.
-- **Channel delivery:** strengthen durable ingress, threading, media, commands, and delivery behavior across bundled channel plugins.
-- **Native apps:** improve mobile and macOS onboarding, offline behavior, paired-node operation, and cross-device session handling.
-- **Install and upgrade reliability:** harden package generation, plugin dependencies, release validation, and migration safety. Thanks @joshavant.
+- **State safety and recovery:** protect persisted data with a quarantine store that survives primary-database damage, crash-recoverable SQLite snapshots, crash-durable filesystem publication, schema-upgrade data-loss rejection, and rollback-writer snapshot recovery. (#110453, #113367, #113453, #113473, #113580) Thanks @vincentkoc.
+- **Durable channel delivery:** keep accepted messages recoverable across gateway restarts and local crashes through the shared ingress drain and dead-letter recovery, covering Telegram, Signal, Slack, QQBot, Twitch, Synology Chat, Tlon, IRC, and Zalo User. #108656, #107246, #109911 (#108924, #107288, #109907, #109910, #110844, #110852, #110899, #110910, #110914, #110916, #111029) Thanks @obviyus and @edenfunf.
+- **Session rewind and branching:** rewind or fork conversations from individual messages, switch transcript branches across web and native apps, fork upstream Codex sessions, preserve branch-safe queued sends, reject stale-pane writes, and restore prompt images after a fork. (#110660, #110857, #110886, #111149, #112056, #112284, #113073, #113945)
+- **Interactive MCP Apps and dashboards:** host ticketed MCP Apps with bound tools, resources, and bounded context updates; open them from channel replies, pin them to durable dashboards, harden their shared sandbox, and let native plugins declare them directly. #109851, #110451, #113218 (#109861, #109807, #110515, #111211, #111212, #111524, #111687, #111748, #113224) Thanks @fuller-stack-dev.
+- **Questions and approvals everywhere:** let agents ask structured questions with option cards across web, channels, macOS, and native apps, while approvals gain push notifications, history, fair queuing, headless resolution, Claude tool-request relay, reviewer detail, and clearer formatted prompts. #85954 (#108505, #108709, #108776, #109922, #110242, #110372, #110584, #110681, #110989, #111060, #112918, #113027, #113193) Thanks @omarshahine.
+- **Meetings and realtime Talk:** join Teams, Zoom, and Google Meet calls with default-enabled meeting plugins and durable transcript collection, while realtime Talk adds OpenAI and Gemini video plus GPT Live through Codex OAuth. #86425, #113353 (#109579, #109719, #109964, #111048, #113022, #113053, #113122, #113354) Thanks @shushushv and @Solvely-Colin.
+- **Wear OS companion:** add the phone-proxied Wear companion with home-screen agent/session/model selection, realtime Talk controls, audio-reactive playback, and an instant-talk tile. #108781 (#108835, #109341, #109433, #109483, #110661, #111516, #112721) Thanks @sibbl, @IWhatsskill, and @Solvely-Colin.
+- **Guided setup and local inference:** guide setup across browser, Linux, and macOS with local-provider detection, strongest-model selection, downloadable models, lean mode, memory imports, and an in-process RAM-gated llama.cpp/Gemma path. #108604 (#108605, #108868, #108977, #109250, #109444, #109585, #110054, #110141, #110596, #113476)
 
 ### Changes
 
-- **Product capabilities:** this release expands agent, UI, channel, plugin, automation, and native-app workflows.
+- **Models and providers:** add Claude Opus 5 across catalog and runtime, Kimi K3, and GPT Live through Codex OAuth. (#113391, #113392, #113633; related #113412; #113909, #113354; related #113353) Thanks @fuller-stack-dev, @vincentkoc, and @Solvely-Colin.
+- **Local inference and setup:** detect local inference providers during onboarding, add in-process llama.cpp GGUF inference and Baseten Model API support, discover models from live provider catalogs, and offer model downloads from web and macOS setup. (#108605; related #108604; #109444, #108708; related #108665; #112412; related #112405; #113476) Thanks @fuller-stack-dev.
+- **Sessions and dashboards:** add rewind/fork and branch switching across web and native chat, session boards and dashboards, archived/visibility/draft/incognito session states, and suggestion queues with typing indicators. (#110660, #110857, #110886, #111149, #110644, #110960, #112554, #112787, #113006, #113127, #113173)
+- **Native apps:** bring Quick Chat to macOS and Linux with streaming, routing, context capture, dictation, and model controls; add Linux desktop integration and signed updates; add multi-gateway apps and mobile dashboards; and expand Wear OS companion/Talk support. (#109720, #109947, #110285, #110631, #110632, #110635, #110994, #109236, #108770, #111932; related #111931; #112163, #109341, #109433; related #108781; #109483, #112721) Thanks @sibbl, @IWhatsskill, @Solvely-Colin, and @vincentkoc.
+- **Meetings:** add Teams and Zoom meeting guests, enable Teams, Zoom, and Google Meet plugins by default, and automatically collect durable meeting transcripts. (#109964, #111048, #113022, #113053, #113122)
+- **Channels:** add the Buzz plugin, Slack user-identity and Agent View modes, Telegram Bot API rich blocks and native Markdown lists, and richer Matrix formatting. (#113419, #109837, #103895; related #103673; #107986, #113158, #113199) Thanks @Patrick-Erichsen and @obviyus.
+- **Browser and MCP Apps:** add a secure per-tab browser copilot, batch browser CLI, bounded page-question extraction, a ticketed MCP App host and Control UI bridge, and manifest-declared MCP Apps for native plugins. (#109817, #111457, #113861, #109861; related #109851; #109807, #113224; related #113218) Thanks @anagnorisis2peripeteia, @FMLS, @cursoragent, @hxy91819, and @fuller-stack-dev.
+- **Memory:** add fast active-memory recall, default cross-conversation recall for personal installs, guided imports from Claude Code/Codex/Hermes, and a dedicated Memory settings page. (#108043, #110597, #108977, #114037)
+- **Scheduling:** add per-job dynamic cadence, gated script payloads, durable schedule-source streaming, cron-backed heartbeat monitors, heartbeat-task conversion, current-conversation defaults, and `/loop`. (#110978, #111112, #112387, #112585, #113165, #114328)
 
 ### Fixes
 
-- **Reliability:** this release includes broad correctness, safety, packaging, and upgrade fixes across the supported product surfaces.
+- **Security and authorization:** prevent channel allowlists from granting owner access, keep session exports inside the workspace, close a forged-marker/web-search boundary bypass, prevent non-owner ACP session exposure, reject unsafe explicit approval IDs, harden secret redaction and exec/OAuth approvals, validate downloaded install scripts, and prevent insecure secrets-plan writes. (#107403; related #104984; #104708; related #102391; #110417, #110745; related #103055; #111055, #112947, #112952, #112953, #112956, #112946, #112957, #113307; related #90013; #113707) Thanks @obviyus, @yetval, @VACInc, @pgondhi987, and @SebTardif.
+- **SQLite and data safety:** commit session indexes before transcript eviction, preserve state through maintenance races and live-WAL verification, reject invalid backups and schema data loss, make snapshot publication crash-recoverable, and retain complete backups after interrupted commits. (#108378, #113216; related #113209, #113210, #113211; #113287; related #113265; #113367, #113473, #113607, #114016) Thanks @yetval, @vincentkoc, and @VACInc.
+- **Channel delivery:** stop Telegram durable-ingress loss across restarts and persist offsets only after spool writes, preserve Discord/iMessage/WhatsApp traffic across crashes or restarts, restore assistant context and interrupted turns after restart, keep queued replies alive, and emit a fallback when a visible turn returns no reply. (#107288; related #107246; #113368; related #113315; #110274, #110409, #110418, #112548; related #112520; #112562, #114058, #114531) Thanks @obviyus, @carlosjarenom, and @JesusSerrano-Seimako.
+- **Sessions and transcripts:** preserve final replies, active turns, Codex-bound history, and transcript cursors; prevent repeated tool-call IDs from poisoning sessions; close lifecycle races and cross-agent deadlocks; and prevent TUI cross-session leaks and lost streams. (#107799; related #106594; #110389, #110518; related #109443; #112016, #112988, #114477; related #103077, #103089, #113005, #114187; #114524, #114504) Thanks @joshavant, @lockhartheavyindustries, @flashosophy, @yetval, @realaudreyserber-afk, @hvhoon, and @steipete-oai.
+- **Install and upgrade:** preserve working installs on unsupported Node and npm 12, isolate source postinstall state, repair missing native adapters, keep versioned plugins off source paths, avoid dirty source builds, repair plugin config during upgrades, stop packages from deleting UI/runtime files, finish ClawHub uninstall, surface empty npm-install failures, and discover external web-search plugins on fresh installs. (#106994; related #106870; #108100; related #107290; #111514; related #111513; #111682, #112829; related #112827; #113094, #113324, #113856, #113821, #114090, #114215; related #113975; #114327) Thanks @woohahahaaa, @fuller-stack-dev, @vincentkoc, @sallyom, and @alxfyvwebaccts-png.
+- **Provider reliability:** prevent false Codex exhaustion and silent replies, honor Anthropic Retry-After, preserve selected Claude CLI profiles and adopted chats, recover Codex Computer Use and user-home app-server routes, retry transient device polling, correct OpenAI onboarding, and stabilize Ollama/LM Studio/local-model discovery. (#110381; related #96815; #110980, #111072; related #103849; #112458; related #95612, #107668; #113078, #113393, #114397, #114094; related #114086; #114288, #114405, #114582) Thanks @xxw77, @yetval, @fuller-stack-dev, @cstreeter, @josh-cornelius, @lanyoung, @LeonidasLux, and @BomBastikDE.
+- **Cron reliability:** restore one-shot and startup catch-up jobs, preserve script state and scheduled authority across restarts, accept benign same-generation updates, bind jobs to the durable store session, unblock completed jobs behind slower batches, and trim job IDs before exact lookup. (#107236, #110351; related #102236; #111292; related #111271, #111272, #111273, #111274; #112483, #113088; related #113085; #114421, #114441, #110849) Thanks @SL4N, @yetval, @joshavant, @metahacker, @efpiva, and @nocodet888-arch.
+- **Compaction and response delivery:** account for CJK text in compaction estimates and treat `no_compactable_entries` as a benign skip. (#114386; related #103930; #114449; related #114385) Thanks @qingminglong, @revision-co-ltd, @loulanyue, and @alfredjbclaw.
+- **Platform and transport reliability:** respect debug-proxy response backpressure, cancel early-woken meeting audio timers, and preserve Windows PATH delimiters in node status. (#114076; related #105701; #114526, #114505) Thanks @qingminglong, @aniruddhaadak80, and @IWhatsskill.
+- **Channel edge cases:** settle Feishu outbound delivery, surface Signal recipient failures, and support reverse-proxy paths in Matrix homeserver URLs. (#113152, #111960; related #111959; #93516; related #102885) Thanks @joshavant, @ooiuuii, and @Papilionidae.
 
 ### Complete contribution record
 
-This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..311047822ecdde24e824d839ab105ef08f17be00 history: 3626 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
+This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..4ef6139aed3addcb241e900e3123da35f1255cbb history: 3909 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
 
 #### Pull requests
 
@@ -3652,6 +3672,289 @@ This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8
 - **PR #114157**
 - **PR #114152** Thanks @Patrick-Erichsen.
 - **PR #114056** Thanks @keshavbotagent and @jalehman.
+- **PR #114130**
+- **PR #114205** Thanks @fuller-stack-dev.
+- **PR #114016** Thanks @VACInc.
+- **PR #114212**
+- **PR #114037**
+- **PR #114213**
+- **PR #114217**
+- **PR #107588** Thanks @VACInc.
+- **PR #112000** Thanks @jesse-merhi.
+- **PR #114221**
+- **PR #114216**
+- **PR #114218**
+- **PR #113667** Thanks @JesusSerrano-Seimako and @obviyus.
+- **PR #114117** Thanks @VACInc.
+- **PR #114224**
+- **PR #114227**
+- **PR #114226** Thanks @fuller-stack-dev.
+- **PR #114223**
+- **PR #114219**
+- **PR #114220**
+- **PR #114232**
+- **PR #114231**
+- **PR #114228**
+- **PR #114225**
+- **PR #114229**
+- **PR #114235**
+- **PR #114233**
+- **PR #114230**
+- **PR #113834** Related #113825.
+- **PR #113842** Related #113826.
+- **PR #114237**
+- **PR #114243**
+- **PR #114236**
+- **PR #113502** Related #113480. Thanks @RomneyDa.
+- **PR #114244**
+- **PR #114245**
+- **PR #114246**
+- **PR #114248**
+- **PR #114249**
+- **PR #113866** Thanks @VACInc.
+- **PR #114247**
+- **PR #114259** Related #114142. Thanks @shakkernerd and @dragonclaw-dragonflydb.
+- **PR #114258**
+- **PR #114215** Related #113975. Thanks @sallyom and @alxfyvwebaccts-png.
+- **PR #114260**
+- **PR #114256**
+- **PR #113081** Related #113079. Thanks @edenfunf.
+- **PR #114250** Related #114007.
+- **PR #114265**
+- **PR #114257**
+- **PR #114134** Thanks @pgondhi987.
+- **PR #114271**
+- **PR #114251**
+- **PR #113500** Thanks @joshavant.
+- **PR #114112** Thanks @RomneyDa.
+- **PR #114263**
+- **PR #114268**
+- **PR #114262**
+- **PR #114280** Thanks @yangxiansheng.
+- **PR #114284**
+- **PR #113063** Related #113060. Thanks @dandriscoll.
+- **PR #114288**
+- **PR #113905** Related #106598. Thanks @yanmo42 and @jackinx.
+- **PR #114290**
+- **PR #105896** Related #105680. Thanks @momothemage and @aniruddhaadak80.
+- **PR #114291**
+- **PR #114289**
+- **PR #114285**
+- **PR #114286**
+- **PR #114301**
+- **PR #114307**
+- **PR #114326**
+- **PR #114310**
+- **PR #114329**
+- **PR #114300**
+- **PR #114312**
+- **PR #114330**
+- **PR #114311**
+- **PR #114324**
+- **PR #114331**
+- **PR #114332**
+- **PR #114327**
+- **PR #114303**
+- **PR #114337**
+- **PR #114336**
+- **PR #114340**
+- **PR #114333**
+- **PR #114338**
+- **PR #114328**
+- **PR #114334**
+- **PR #114341**
+- **PR #114348**
+- **PR #113916** Thanks @interkelstar.
+- **PR #114349**
+- **PR #114352**
+- **PR #113959** Thanks @ekinnee and @gucasbrg.
+- **PR #114335**
+- **PR #114347**
+- **PR #112838** Related #112825. Thanks @RomneyDa.
+- **PR #114325** Thanks @RomneyDa.
+- **PR #114339**
+- **PR #113266** Thanks @xialonglee.
+- **PR #114345**
+- **PR #114358**
+- **PR #114344**
+- **PR #114362**
+- **PR #114359**
+- **PR #114360** Thanks @1052326311.
+- **PR #114363**
+- **PR #114356**
+- **PR #114365** Related #114238.
+- **PR #114372**
+- **PR #114371**
+- **PR #114373**
+- **PR #114375**
+- **PR #114133** Thanks @pgondhi987.
+- **PR #113884** Related #113823.
+- **PR #114379**
+- **PR #114266**
+- **PR #114136** Thanks @pgondhi987.
+- **PR #113783**
+- **PR #114384**
+- **PR #114369**
+- **PR #114394**
+- **PR #114380** Related #114354.
+- **PR #114346**
+- **PR #113405** Thanks @fede-kamel.
+- **PR #114378**
+- **PR #114397**
+- **PR #114381**
+- **PR #114391**
+- **PR #114366**
+- **PR #114404**
+- **PR #113935** Related #113451. Thanks @yetval and @xiaziteam.
+- **PR #114396**
+- **PR #114393**
+- **PR #114407**
+- **PR #114395**
+- **PR #114410**
+- **PR #113465** Related #107571. Thanks @trpontes and @evan-YM and @crash2kx.
+- **PR #114021** Thanks @santhiprakash.
+- **PR #113966**
+- **PR #114417** Thanks @RomneyDa.
+- **PR #114041** Thanks @zenglingbiao.
+- **PR #113368** Related #113315. Thanks @carlosjarenom and @obviyus and @JesusSerrano-Seimako.
+- **PR #114412**
+- **PR #114400**
+- **PR #114422**
+- **PR #114094** Related #114086. Thanks @lanyoung and @LeonidasLux and @BomBastikDE.
+- **PR #114399**
+- **PR #114401**
+- **PR #114429**
+- **PR #114383** Related #113612.
+- **PR #114421**
+- **PR #114377** Related #114374.
+- **PR #114413**
+- **PR #114028** Thanks @santhiprakash.
+- **PR #114420**
+- **PR #114443** Related #38829. Thanks @harjothkhara and @ZengWen-DT and @galen2017.
+- **PR #114057** Thanks @santhiprakash.
+- **PR #114418**
+- **PR #114451**
+- **PR #114433**
+- **PR #114415** Related #114398.
+- **PR #112634** Related #109031. Thanks @lee-xydt and @shng-fujiwara.
+- **PR #114426**
+- **PR #114441** Thanks @efpiva.
+- **PR #114446** Related #111128. Thanks @Alex-YYYY.
+- **PR #114444**
+- **PR #114436**
+- **PR #114455**
+- **PR #114425**
+- **PR #114405**
+- **PR #111743** Related #111741. Thanks @ooiuuii.
+- **PR #114461** Related #96115, #111704. Thanks @cbertucci33 and @pallaoro.
+- **PR #114463**
+- **PR #114392** Thanks @sunlit-deng.
+- **PR #114469**
+- **PR #114132** Thanks @pgondhi987.
+- **PR #114370** Related #114279. Thanks @WilShi and @synthalorian.
+- **PR #93516** Related #102885. Thanks @Papilionidae.
+- **PR #114353**
+- **PR #114470**
+- **PR #114474** Related #94529. Thanks @cunweilv-star.
+- **PR #114481**
+- **PR #114408**
+- **PR #114126**
+- **PR #114439** Thanks @AJH763.
+- **PR #114462** Related #114440.
+- **PR #113654** Related #111906. Thanks @1052326311 and @dseravalli.
+- **PR #56145** Related #42576. Thanks @vrurg.
+- **PR #114368**
+- **PR #114450** Related #105078. Thanks @VectorPeak.
+- **PR #114478**
+- **PR #114490** Related #114322. Thanks @kevin2966n.
+- **PR #114457** Related #99174. Thanks @sunkencity999.
+- **PR #114486**
+- **PR #114491** Related #83538. Thanks @Jerry-Xin and @swildcat10.
+- **PR #114496**
+- **PR #114489** Related #104501. Thanks @ekinnee.
+- **PR #114477** Related #103077, #103089, #113005, #114187. Thanks @steipete-oai and @yetval and @realaudreyserber-afk and @hvhoon.
+- **PR #114495**
+- **PR #114479**
+- **PR #114367**
+- **PR #114275** Related #105668. Thanks @LZY3538 and @aniruddhaadak80.
+- **PR #114512** Thanks @hugin-bot.
+- **PR #114508**
+- **PR #114494**
+- **PR #114514**
+- **PR #114519** Related #113282. Thanks @AIAT-AIandBusinessgrowth.
+- **PR #114521** Related #114320. Thanks @kevin2966n.
+- **PR #114520**
+- **PR #114432**
+- **PR #112166** Related #108331. Thanks @xialonglee and @obviyus and @Enominera.
+- **PR #114499**
+- **PR #114524** Thanks @steipete-oai.
+- **PR #114453**
+- **PR #111709** Thanks @kesava500.
+- **PR #112352** Thanks @kesava500.
+- **PR #114528**
+- **PR #114516**
+- **PR #114533**
+- **PR #114504**
+- **PR #114498**
+- **PR #114540** Thanks @hugenshen.
+- **PR #114537** Related #114321. Thanks @kevin2966n.
+- **PR #114532**
+- **PR #114522**
+- **PR #114476**
+- **PR #113205** Related #113144, #113148. Thanks @licheer-zte and @yifanxiong272.
+- **PR #114355**
+- **PR #114488** Related #114485.
+- **PR #114539**
+- **PR #113070** Related #113069. Thanks @sasan1200.
+- **PR #114531** Thanks @obviyus.
+- **PR #112492** Related #112477. Thanks @harjothkhara and @alfredo-torrijos.
+- **PR #114562**
+- **PR #114497**
+- **PR #114542**
+- **PR #114515**
+- **PR #114546** Related #105306. Thanks @Createsnow.
+- **PR #114567**
+- **PR #114511**
+- **PR #114569** Related #111383. Thanks @metaforismo.
+- **PR #114571**
+- **PR #111960** Related #111959. Thanks @ooiuuii.
+- **PR #114548**
+- **PR #114509**
+- **PR #110399** Thanks @Leon-SK668.
+- **PR #114549**
+- **PR #114386** Related #103930. Thanks @qingminglong and @revision-co-ltd.
+- **PR #114568** Related #114563.
+- **PR #114560**
+- **PR #114581**
+- **PR #114449** Related #114385. Thanks @loulanyue and @alfredjbclaw.
+- **PR #114106** Thanks @RomneyDa.
+- **PR #114556**
+- **PR #114582**
+- **PR #114559**
+- **PR #105931** Thanks @lsr911 and @altaywtf.
+- **PR #114585**
+- **PR #107800** Related #106568. Thanks @harjothkhara and @altaywtf and @aniruddhaadak80.
+- **PR #114564** Related #113252. Thanks @FatosLocos.
+- **PR #114555** Related #114541. Thanks @osolmaz.
+- **PR #114558**
+- **PR #114273** Related #106649. Thanks @LZY3538 and @aniruddhaadak80.
+- **PR #114597**
+- **PR #114572**
+- **PR #114547**
+- **PR #113012** Thanks @liuhaiyang14 and @altaywtf.
+- **PR #114607**
+- **PR #114606**
+- **PR #114616** Thanks @osolmaz.
+- **PR #114500** Related #103735. Thanks @Maless88.
+- **PR #113454** Thanks @giodl73-repo.
+- **PR #97024** Thanks @0xghost42.
+- **PR #114618**
+- **PR #114465**
+- **PR #114076** Related #105701. Thanks @qingminglong and @aniruddhaadak80.
+- **PR #110849** Thanks @nocodet888-arch.
+- **PR #114357**
+- **PR #114526** Thanks @IWhatsskill.
+- **PR #114505** Thanks @IWhatsskill.
 ## 2026.7.1
 
 OpenClaw v2026.7.1 brings major Control UI and onboarding overhauls, major updates to the official iOS, Android, and macOS apps, expanded model and provider support including GPT-5.6 compatibility, Tencent Hy3, and Meta Muse Spark 1.1, and stronger Codex and connected coding-agent workflows. Telegram, Slack, Discord, and Apple Messages each receive substantial updates, while Gateway crash loops, scheduled work, remote browser control, workspace terminals, sessions, and goals also improve. There are also many general fixes and refinements throughout OpenClaw.

@@ -32,7 +32,7 @@ Docs: https://docs.openclaw.ai
 - **Security and authorization:** prevent channel allowlists from granting owner access, keep session exports inside the workspace, close a forged-marker/web-search boundary bypass, prevent non-owner ACP session exposure, reject unsafe explicit approval IDs, harden secret redaction and exec/OAuth approvals, validate downloaded install scripts, and prevent insecure secrets-plan writes. (#107403; related #104984; #104708; related #102391; #110417, #110745; related #103055; #111055, #112947, #112952, #112953, #112956, #112946, #112957, #113307; related #90013; #113707) Thanks @obviyus, @yetval, @VACInc, @pgondhi987, and @SebTardif.
 - **SQLite and data safety:** commit session indexes before transcript eviction, preserve state through maintenance races and live-WAL verification, reject invalid backups and schema data loss, make snapshot publication crash-recoverable, and retain complete backups after interrupted commits. (#108378, #113216; related #113209, #113210, #113211; #113287; related #113265; #113367, #113473, #113607, #114016) Thanks @yetval, @vincentkoc, and @VACInc.
 - **Channel delivery:** stop Telegram durable-ingress loss across restarts and persist offsets only after spool writes, preserve Discord/iMessage/WhatsApp traffic across crashes or restarts, restore assistant context and interrupted turns after restart, keep queued replies alive, and emit a fallback when a visible turn returns no reply. (#107288; related #107246; #113368; related #113315; #110274, #110409, #110418, #112548; related #112520; #112562, #114058, #114531) Thanks @obviyus, @carlosjarenom, and @JesusSerrano-Seimako.
-- **Sessions and transcripts:** preserve final replies, active turns, Codex-bound history, and transcript cursors; prevent repeated tool-call IDs from poisoning sessions; close lifecycle races and cross-agent deadlocks; and prevent TUI cross-session leaks and lost streams. (#107799; related #106594; #110389, #110518; related #109443; #112016, #112988, #114477; related #103077, #103089, #113005, #114187; #114524, #114504) Thanks @joshavant, @lockhartheavyindustries, @flashosophy, @yetval, @realaudreyserber-afk, @hvhoon, and @steipete-oai.
+- **Sessions and transcripts:** preserve final replies, active turns, Codex-bound history, and transcript cursors; prevent repeated tool-call IDs from poisoning sessions; close lifecycle races and cross-agent deadlocks; and prevent TUI cross-session leaks and lost streams. (#107799; related #106594; #110389, #110518; related #109443; #112016, #112988, #114477; related #103077, #103089, #113005, #114187; #114524, #114504) Thanks @joshavant, @lockhartheavyindustries, @flashosophy, @yetval, @realaudreyserber-afk, and @hvhoon.
 - **Install and upgrade:** preserve working installs on unsupported Node and npm 12, isolate source postinstall state, repair missing native adapters, keep versioned plugins off source paths, avoid dirty source builds, repair plugin config during upgrades, stop packages from deleting UI/runtime files, finish ClawHub uninstall, surface empty npm-install failures, and discover external web-search plugins on fresh installs. (#106994; related #106870; #108100; related #107290; #111514; related #111513; #111682, #112829; related #112827; #113094, #113324, #113856, #113821, #114090, #114215; related #113975; #114327) Thanks @woohahahaaa, @fuller-stack-dev, @vincentkoc, @sallyom, and @alxfyvwebaccts-png.
 - **Provider reliability:** prevent false Codex exhaustion and silent replies, honor Anthropic Retry-After, preserve selected Claude CLI profiles and adopted chats, recover Codex Computer Use and user-home app-server routes, retry transient device polling, correct OpenAI onboarding, and stabilize Ollama/LM Studio/local-model discovery. (#110381; related #96815; #110980, #111072; related #103849; #112458; related #95612, #107668; #113078, #113393, #114397, #114094; related #114086; #114288, #114405, #114582) Thanks @xxw77, @yetval, @fuller-stack-dev, @cstreeter, @josh-cornelius, @lanyoung, @LeonidasLux, and @BomBastikDE.
 - **Cron reliability:** restore one-shot and startup catch-up jobs, preserve script state and scheduled authority across restarts, accept benign same-generation updates, bind jobs to the durable store session, unblock completed jobs behind slower batches, and trim job IDs before exact lookup. (#107236, #110351; related #102236; #111292; related #111271, #111272, #111273, #111274; #112483, #113088; related #113085; #114421, #114441, #110849) Thanks @SL4N, @yetval, @joshavant, @metahacker, @efpiva, and @nocodet888-arch.
@@ -42,7 +42,7 @@ Docs: https://docs.openclaw.ai
 
 ### Complete contribution record
 
-This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..4ef6139aed3addcb241e900e3123da35f1255cbb history: 3909 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
+This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..27821eaea0978244a7f2ce47665fb518806b3632 history: 3909 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
 
 #### Pull requests
 
@@ -3872,12 +3872,12 @@ This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8
 - **PR #114491** Related #83538. Thanks @Jerry-Xin and @swildcat10.
 - **PR #114496**
 - **PR #114489** Related #104501. Thanks @ekinnee.
-- **PR #114477** Related #103077, #103089, #113005, #114187. Thanks @steipete-oai and @yetval and @realaudreyserber-afk and @hvhoon.
+- **PR #114477** Related #103077, #103089, #113005, #114187. Thanks @yetval and @realaudreyserber-afk and @hvhoon.
 - **PR #114495**
 - **PR #114479**
 - **PR #114367**
 - **PR #114275** Related #105668. Thanks @LZY3538 and @aniruddhaadak80.
-- **PR #114512** Thanks @hugin-bot.
+- **PR #114512**
 - **PR #114508**
 - **PR #114494**
 - **PR #114514**
@@ -3887,7 +3887,7 @@ This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8
 - **PR #114432**
 - **PR #112166** Related #108331. Thanks @xialonglee and @obviyus and @Enominera.
 - **PR #114499**
-- **PR #114524** Thanks @steipete-oai.
+- **PR #114524**
 - **PR #114453**
 - **PR #111709** Thanks @kesava500.
 - **PR #112352** Thanks @kesava500.

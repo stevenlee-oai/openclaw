@@ -42,7 +42,7 @@ Docs: https://docs.openclaw.ai
 
 ### Complete contribution record
 
-This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..27821eaea0978244a7f2ce47665fb518806b3632 history: 3909 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
+This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8..1d326e4f917a6527a737781918a733360c89eed1 history: 3908 merged PRs. The generation manifest also supplies direct commits as editorial input; the grouped notes above prioritize user impact.
 
 #### Pull requests
 
@@ -3935,7 +3935,6 @@ This audited record covers the complete a5b2e4167de860fe3fe3da7284cd5f36883560c8
 - **PR #114585**
 - **PR #107800** Related #106568. Thanks @harjothkhara and @altaywtf and @aniruddhaadak80.
 - **PR #114564** Related #113252. Thanks @FatosLocos.
-- **PR #114555** Related #114541. Thanks @osolmaz.
 - **PR #114558**
 - **PR #114273** Related #106649. Thanks @LZY3538 and @aniruddhaadak80.
 - **PR #114597**

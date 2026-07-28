@@ -79,6 +79,122 @@ describe("captureCodexSettledTurnFinalizationContext", () => {
     expect(context?.messages).not.toBe(historyMessages);
   });
 
+  it("keeps the later canonical prompt from an exact historical prompt pair", async () => {
+    const prior = message({ role: "user", content: "Earlier context." }, "turn-1:prompt");
+    const settledMessages = settledTurn();
+    const mirroredPrompt = message(
+      {
+        role: "user",
+        content: "Send it.",
+        idempotencyKey: "run-2:user",
+        __openclaw: { rowOwner: "codex-mirror" },
+      },
+      "turn-2:prompt",
+    );
+    const canonicalPrompt = message(
+      {
+        role: "user",
+        content: "Send it.",
+        idempotencyKey: "run-2:user",
+        __openclaw: { rowOwner: "session-manager" },
+      },
+      "turn-2:prompt",
+    );
+    const historyMessages = [
+      prior,
+      mirroredPrompt,
+      canonicalPrompt,
+      settledMessages[1]!,
+      settledMessages[2]!,
+    ];
+
+    const context = await captureContext({
+      historyMessages,
+      mirroredMessages: settledMessages,
+      settledMessages,
+      turnId: "turn-2",
+    });
+
+    expect(context).toEqual({
+      source: "openclaw-transcript",
+      messages: [prior, canonicalPrompt, settledMessages[1]!, settledMessages[2]!],
+    });
+  });
+
+  it.each([
+    {
+      name: "missing idempotency key",
+      pair: [
+        message({ role: "user", content: "Send it." }, "turn-2:prompt"),
+        message({ role: "user", content: "Send it." }, "turn-2:prompt"),
+      ],
+    },
+    {
+      name: "different idempotency keys",
+      pair: [
+        message(
+          { role: "user", content: "Send it.", idempotencyKey: "run-2:user" },
+          "turn-2:prompt",
+        ),
+        message(
+          { role: "user", content: "Send it.", idempotencyKey: "other:user" },
+          "turn-2:prompt",
+        ),
+      ],
+    },
+    {
+      name: "payload drift",
+      pair: [
+        message(
+          { role: "user", content: "Send it.", idempotencyKey: "run-2:user" },
+          "turn-2:prompt",
+        ),
+        message(
+          { role: "user", content: "Send something else.", idempotencyKey: "run-2:user" },
+          "turn-2:prompt",
+        ),
+      ],
+    },
+    {
+      name: "non-prompt identity",
+      pair: [
+        message({ role: "user", content: "Send it.", idempotencyKey: "run-2:user" }, "turn-2:user"),
+        message({ role: "user", content: "Send it.", idempotencyKey: "run-2:user" }, "turn-2:user"),
+      ],
+    },
+  ])("fails closed for a canonical-looking pair with $name", async ({ pair }) => {
+    const settledMessages = settledTurn();
+    await expect(
+      captureContext({
+        historyMessages: [...pair, settledMessages[1]!, settledMessages[2]!],
+        mirroredMessages: settledMessages,
+        settledMessages,
+        turnId: "turn-2",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("fails closed for non-adjacent or repeated canonical prompt identities", async () => {
+    const settledMessages = settledTurn();
+    const prompt = () =>
+      message({ role: "user", content: "Send it.", idempotencyKey: "run-2:user" }, "turn-2:prompt");
+    const separator = message({ role: "assistant", content: "unrelated" }, "turn-1:assistant");
+
+    for (const historyMessages of [
+      [prompt(), separator, prompt(), settledMessages[1]!, settledMessages[2]!],
+      [prompt(), prompt(), prompt(), settledMessages[1]!, settledMessages[2]!],
+    ]) {
+      await expect(
+        captureContext({
+          historyMessages,
+          mirroredMessages: settledMessages,
+          settledMessages,
+          turnId: "turn-2",
+        }),
+      ).resolves.toBeUndefined();
+    }
+  });
+
   it.each([
     {
       name: "missing current prompt",

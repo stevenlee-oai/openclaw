@@ -10,6 +10,60 @@ import { readMirrorIdentity } from "./upstream-prompt-provenance.js";
 
 type SettledTurnFinalizationContext = EmbeddedRunAttemptResult["settledTurnFinalizationContext"];
 
+function readMessageIdempotencyKey(message: AgentMessage): string | undefined {
+  const value = (message as unknown as { idempotencyKey?: unknown }).idempotencyKey;
+  return typeof value === "string" && value ? value : undefined;
+}
+
+function isCanonicalPromptPair(previous: AgentMessage, current: AgentMessage): boolean {
+  const identity = readMirrorIdentity(current);
+  const idempotencyKey = readMessageIdempotencyKey(current);
+  return (
+    previous.role === "user" &&
+    current.role === "user" &&
+    identity?.endsWith(":prompt") === true &&
+    readMirrorIdentity(previous) === identity &&
+    Boolean(idempotencyKey) &&
+    readMessageIdempotencyKey(previous) === idempotencyKey &&
+    serializeCodexMirrorSourceEvidence(previous) === serializeCodexMirrorSourceEvidence(current)
+  );
+}
+
+function normalizeCanonicalPromptPairs(
+  messages: readonly AgentMessage[],
+): { messages: AgentMessage[]; identities: Map<string, number> } | undefined {
+  const normalized: AgentMessage[] = [];
+  const identityIndexes = new Map<string, number>();
+  const normalizedPairIdentities = new Set<string>();
+  for (const message of messages) {
+    const identity = readMirrorIdentity(message);
+    if (!identity) {
+      normalized.push(message);
+      continue;
+    }
+    const existingIndex = identityIndexes.get(identity);
+    if (existingIndex === undefined) {
+      normalized.push(message);
+      identityIndexes.set(identity, normalized.length - 1);
+      continue;
+    }
+    const previous = normalized[existingIndex];
+    if (
+      !previous ||
+      existingIndex !== normalized.length - 1 ||
+      normalizedPairIdentities.has(identity) ||
+      !isCanonicalPromptPair(previous, message)
+    ) {
+      return undefined;
+    }
+    // The later row is the SessionManager node used by subsequent parent
+    // links. Keep it in the finalizer projection without changing stored rows.
+    normalized[existingIndex] = message;
+    normalizedPairIdentities.add(identity);
+  }
+  return { messages: normalized, identities: identityIndexes };
+}
+
 function collectUniqueMessageIdentities(
   messages: readonly AgentMessage[],
 ): Map<string, number> | undefined {
@@ -59,11 +113,12 @@ function buildCodexSettledTurnFinalizationContext(params: {
     return undefined;
   }
 
-  const historyIdentities = collectUniqueMessageIdentities(params.historyMessages);
+  const normalizedHistory = normalizeCanonicalPromptPairs(params.historyMessages);
   const mirroredIdentities = collectUniqueMessageIdentities(params.mirroredMessages);
-  if (!historyIdentities || !mirroredIdentities) {
+  if (!normalizedHistory || !mirroredIdentities) {
     return undefined;
   }
+  const historyIdentities = normalizedHistory.identities;
   const mirroredBoundaryIndex = mirroredIdentities.get(boundaryIdentity);
   if (mirroredBoundaryIndex === undefined) {
     return undefined;
@@ -86,7 +141,7 @@ function buildCodexSettledTurnFinalizationContext(params: {
     const identity = readMirrorIdentity(mirroredMessage);
     const historyIndex = identity ? historyIdentities.get(identity) : undefined;
     const historyMessage =
-      historyIndex === undefined ? undefined : params.historyMessages[historyIndex];
+      historyIndex === undefined ? undefined : normalizedHistory.messages[historyIndex];
     if (
       historyIndex === undefined ||
       historyIndex <= previousHistoryIndex ||
@@ -103,7 +158,7 @@ function buildCodexSettledTurnFinalizationContext(params: {
   // Clone before returning so later transcript/cache mutation cannot change the
   // exact application evidence authorized for the isolated finalization turn.
   const messages = Object.freeze(
-    structuredClone(params.historyMessages.slice(0, historyBoundaryIndex + 1)),
+    structuredClone(normalizedHistory.messages.slice(0, historyBoundaryIndex + 1)),
   );
   return { source: "openclaw-transcript", messages };
 }

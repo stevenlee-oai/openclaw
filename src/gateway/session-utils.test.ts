@@ -23,13 +23,13 @@ import { normalizeSessionDeliveryState } from "../utils/delivery-context.shared.
 import { registerSessionAutomationSource } from "./session-automation-index.js";
 import { buildGatewaySessionEventFields } from "./session-event-payload.js";
 import { capArrayByJsonBytes } from "./session-transcript-readers.js";
+import { listSessionsFromStore } from "./session-utils-list.js";
 import {
   canonicalizeSpawnedByForAgent,
   buildGatewaySessionRow,
   deriveSessionTitle,
   getSessionDefaults,
   listAgentsForGateway,
-  listSessionsFromStore,
   listSessionsFromStoreAsync,
   loadSessionEntry,
   loadSessionEntryReadOnly,

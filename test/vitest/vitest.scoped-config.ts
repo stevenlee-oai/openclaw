@@ -98,6 +98,7 @@ const SCOPED_PROJECT_GROUP_ORDER_BY_NAME = new Map(
     "agents",
     "agents-core",
     "agents-embedded-agent",
+    "agents-embedded-agent-run",
     "agents-support",
     "agents-tools",
     "auto-reply",

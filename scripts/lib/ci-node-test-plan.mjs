@@ -30,6 +30,11 @@ const GATEWAY_STARTUP_CORE_RUNNER = DEFAULT_NODE_TEST_RUNNER;
 const GATEWAY_STARTUP_HEALTH_RUNTIME_ENV = {
   OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "60000",
 };
+// One embedded-agent file can run silently for more than five minutes on CI.
+// Keep the leaf watchdog strict while allowing the combined shard to finish it.
+const EMBEDDED_AGENT_CI_ENV = {
+  OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000",
+};
 const MAX_BUNDLED_NODE_TEST_PATTERNS = 64;
 // PR-only bundles trade a little serial work for fewer ephemeral runner registrations.
 // Keep runner classes and subprocess isolation intact while bounding each combined job.
@@ -1182,7 +1187,11 @@ const SPLIT_NODE_SHARDS = new Map([
       ...createAgentCoreSplitShards(),
       {
         shardName: "agentic-agents-embedded",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
+        configs: [
+          "test/vitest/vitest.agents-embedded-agent.config.ts",
+          "test/vitest/vitest.agents-embedded-agent-run.config.ts",
+        ],
+        env: EMBEDDED_AGENT_CI_ENV,
         requiresDist: false,
       },
       {

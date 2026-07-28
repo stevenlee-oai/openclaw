@@ -23,7 +23,9 @@ export function isAgentsCoreIsolatedTestFile(value) {
 
 export const agentsCoreTestPatterns = ["src/agents/*.test.ts"];
 
-export const agentsEmbeddedTestPatterns = ["src/agents/embedded-agent-runner/**/*.test.ts"];
+export const agentsEmbeddedTestPatterns = ["src/agents/embedded-agent-runner/*.test.ts"];
+
+export const agentsEmbeddedRunTestPatterns = ["src/agents/embedded-agent-runner/run/**/*.test.ts"];
 
 export const agentsToolsTestPatterns = ["src/agents/tools/**/*.test.ts"];
 

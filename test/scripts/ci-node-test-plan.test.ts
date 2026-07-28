@@ -11,6 +11,10 @@ import {
 } from "../../scripts/lib/ci-node-test-plan.mjs";
 import { expectNoNodeFsScans } from "../../src/test-utils/fs-scan-assertions.js";
 import { listGitTrackedFiles, sortRepoPaths, toRepoPath } from "../../src/test-utils/repo-files.js";
+import {
+  agentsEmbeddedRunTestPatterns,
+  agentsEmbeddedTestPatterns,
+} from "../vitest/vitest.agents-paths.mjs";
 import { commandsLightTestFiles } from "../vitest/vitest.commands-light-paths.mjs";
 import { createPluginsVitestConfig } from "../vitest/vitest.plugins.config.ts";
 import { createToolingVitestConfig } from "../vitest/vitest.tooling.config.ts";
@@ -996,7 +1000,11 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
       },
       {
         checkName: "checks-node-agentic-agents-embedded",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
+        configs: [
+          "test/vitest/vitest.agents-embedded-agent.config.ts",
+          "test/vitest/vitest.agents-embedded-agent-run.config.ts",
+        ],
+        env: { OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000" },
         requiresDist: false,
         runner: DEFAULT_NODE_TEST_RUNNER,
         shardName: "agentic-agents-embedded",
@@ -1081,6 +1089,25 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
       .filter((file) => !relative("src/agents", file).replaceAll("\\", "/").includes("/"))
       .toSorted((a, b) => a.localeCompare(b));
 
+    expect(actual).toEqual(expected);
+    expect(new Set(actual).size).toBe(actual.length);
+  });
+
+  it("keeps embedded-agent tests in two bounded config surfaces", () => {
+    const shard = createNodeTestShards().find(
+      (candidate) => candidate.shardName === "agentic-agents-embedded",
+    );
+    const actual = fg
+      .sync([...agentsEmbeddedTestPatterns, ...agentsEmbeddedRunTestPatterns])
+      .toSorted((left, right) => left.localeCompare(right));
+    const expected = listTestFiles("src/agents/embedded-agent-runner").toSorted((left, right) =>
+      left.localeCompare(right),
+    );
+
+    expect(shard?.configs).toEqual([
+      "test/vitest/vitest.agents-embedded-agent.config.ts",
+      "test/vitest/vitest.agents-embedded-agent-run.config.ts",
+    ]);
     expect(actual).toEqual(expected);
     expect(new Set(actual).size).toBe(actual.length);
   });

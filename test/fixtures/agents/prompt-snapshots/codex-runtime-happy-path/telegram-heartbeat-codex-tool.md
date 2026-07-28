@@ -222,24 +222,24 @@ This is the deterministic model-bound layer stack OpenClaw can snapshot for the 
     "roughTokens": 0
   },
   "dynamicToolsJson": {
-    "chars": 62614,
-    "roughTokens": 15654
+    "chars": 62620,
+    "roughTokens": 15655
   },
   "openClawDeveloperInstructions": {
     "chars": 2369,
     "roughTokens": 593
   },
   "totalTextOnly": {
-    "chars": 26810,
-    "roughTokens": 6703
+    "chars": 26797,
+    "roughTokens": 6700
   },
   "totalWithDynamicToolsJson": {
-    "chars": 89426,
-    "roughTokens": 22357
+    "chars": 89419,
+    "roughTokens": 22355
   },
   "userInputText": {
-    "chars": 1284,
-    "roughTokens": 321
+    "chars": 1271,
+    "roughTokens": 318
   }
 }
 ```
@@ -505,7 +505,7 @@ Conversation info: ⟦openclaw:ctx⟧
 {"chat_id":"user:1000001","message_id":"heartbeat-0001","sender":{"id":"1000001","name":"Pash","username":"pash"}}
 ```
 
-Follow the heartbeat monitor scratch context when provided. Recurring tasks are cron jobs; create or change their schedules with cron tools or the openclaw cron CLI, not heartbeat scratch. Do not infer or repeat old tasks from prior chats. Use heartbeat_respond to report the wake outcome. Set notify=false when nothing needs the user's attention. Set notify=true with notificationText only when the user should be interrupted.
+Follow the heartbeat monitor scratch context when provided. Recurring tasks are automations; create or change their schedules with the automations tool, not heartbeat scratch. Do not infer or repeat old tasks from prior chats. Use heartbeat_respond to report the wake outcome. Set notify=false when nothing needs the user's attention. Set notify=true with notificationText only when the user should be interrupted.
 ````
 
 ### Tools: Dynamic Tool Catalog

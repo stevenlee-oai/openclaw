@@ -8,3 +8,4 @@
 {"type":"dep_add","timestamp":"2026-07-28T06:41:01.349311Z","issue_id":"openclaw-872.2","payload":{"dep_type":"blocks","depends_on":"openclaw-872.1"}}
 {"type":"dep_add","timestamp":"2026-07-28T06:41:01.367117Z","issue_id":"openclaw-872","payload":{"dep_type":"blocks","depends_on":"openclaw-872.1"}}
 {"type":"dep_add","timestamp":"2026-07-28T06:41:01.386097Z","issue_id":"openclaw-872","payload":{"dep_type":"blocks","depends_on":"openclaw-872.2"}}
+{"type":"status_update","timestamp":"2026-07-28T06:41:06.460083Z","issue_id":"openclaw-872.1","payload":{"status":"in_progress"}}

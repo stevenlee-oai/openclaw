@@ -41,6 +41,7 @@ export const fa: TranslationMap = {
     unselect: "لغو انتخاب",
     enabled: "فعال",
     disabled: "غیرفعال",
+    failed: "ناموفق",
     none: "هیچ‌کدام",
     na: "n/a",
     never: "هرگز",
@@ -241,11 +242,6 @@ export const fa: TranslationMap = {
       schemaUnavailable: "شِما در دسترس نیست. از Raw استفاده کنید.",
       channelSchemaUnavailable: "شِمای پیکربندی کانال در دسترس نیست.",
       loadingSchema: "در حال بارگذاری شِمای پیکربندی…",
-    },
-    health: {
-      title: "سلامت کانال",
-      subtitle: "نماهای لحظه‌ای وضعیت کانال از Gateway.",
-      noSnapshotYet: "هنوز نمای لحظه‌ای وجود ندارد.",
     },
     generic: {
       subtitle: "وضعیت و پیکربندی کانال.",
@@ -595,7 +591,7 @@ export const fa: TranslationMap = {
     incognito: "ناشناس",
     incognitoDescription: "این گفتگو را فقط تا زمان راه‌اندازی مجدد Gateway نگه دار",
     draft: "پیش‌نویس",
-    draftDescription: "تا زمانی که آن را منتشر نکرده‌اید، این رشته را خصوصی نگه دارید",
+    draftDescription: "این گفتگو را تا زمان انتشار فقط برای خودتان نگه دارید",
     messagePlaceholder: "این جلسه باید روی چه چیزی کار کند؟",
     readingAttachment: "در حال خواندن پیوست",
     start: "شروع جلسه",
@@ -604,6 +600,11 @@ export const fa: TranslationMap = {
     createOutcomeUnknown:
       "هنگام آغاز این نشست، Gateway تغییر کرد. پیش از آغاز دوباره این وظیفه، نشست‌های اخیر را بررسی کنید.",
     catalogUnavailable: "مقصد این نشست در دسترس نیست.",
+  },
+  dashboardsPage: {
+    emptyTitle: "هنوز داشبوردی وجود ندارد",
+    emptyDescription: "یک گفتگو را باز کنید و به نمای Dashboard تغییر دهید تا اینجا اضافه شود.",
+    loadError: "بارگذاری داشبوردها ممکن نشد: {error}",
   },
   sessionsView: {
     deletePreservedWorktrees:
@@ -984,6 +985,8 @@ export const fa: TranslationMap = {
       notCreatedYet: "هنوز ایجاد نشده است",
       updatedUnknown: "زمان به‌روزرسانی نامشخص است",
       missingHint: "این فایل موجود نیست. ذخیره‌سازی آن را در فضای کاری عامل ایجاد می‌کند.",
+      addFile: "افزودن فایل…",
+      createHint: "این فایل هنوز وجود ندارد. ذخیره کردن آن را در فضای کاری عامل ایجاد خواهد کرد.",
       content: "محتوا",
       words: "{count} کلمه",
       lines: "خط",
@@ -1833,6 +1836,7 @@ export const fa: TranslationMap = {
     skillWorkshop: "کارگاه Skill",
     nodes: "گره‌ها",
     chat: "چت",
+    dashboards: "داشبوردها",
     custodian: "OpenClaw",
     config: "Config",
     profile: "نمایه",
@@ -1840,6 +1844,7 @@ export const fa: TranslationMap = {
     appearance: "ظاهر",
     automation: "اتوماسیون",
     mcp: "MCP",
+    memory: "حافظه",
     infrastructure: "زیرساخت",
     labs: "Labs",
     about: "درباره",
@@ -1869,6 +1874,7 @@ export const fa: TranslationMap = {
     skillWorkshop: "پیشنهادها را پیش از تبدیل‌شدن به مهارت‌های فعال، بررسی، اصلاح و اعمال کنید.",
     nodes: "دستگاه‌های جفت‌شده و فرمان‌ها.",
     chat: "چت Gateway برای مداخله‌های سریع.",
+    dashboards: "گفتگوهایی که با نمای داشبورد خود باز می‌شوند.",
     custodian: "راه‌اندازی و مراقبت سیستم.",
     config: "ویرایش openclaw.json.",
     profile: "آمار، زنجیره‌ها، و زندگی عامل شما در صخره.",
@@ -1876,6 +1882,7 @@ export const fa: TranslationMap = {
     appearance: "تنظیمات پوسته، UI و جادوگر راه‌اندازی.",
     automation: "فرمان‌ها، قلاب‌ها، cron و پلاگین‌ها.",
     mcp: "سرورهای MCP، احراز هویت، ابزارها و عیب‌یابی.",
+    memory: "موتور حافظه، بک‌اند، جستجو و رؤیاپردازی.",
     infrastructure: "تنظیمات Gateway، وب، مرورگر و رسانه.",
     labs: "قابلیت‌های آزمایشی عامل و ابزار.",
     about: "Control UI و Gateway متصل، هویت ساخت را تشکیل می‌دهند.",
@@ -2145,6 +2152,154 @@ export const fa: TranslationMap = {
     tlsVerifyOff: "بررسی TLS خاموش",
     mtls: "mTLS",
   },
+  memoryPage: {
+    tablistLabel: "بخش‌های حافظه",
+    tabs: {
+      overview: "نمای کلی",
+      search: "جستجو",
+      dreaming: "رؤیاپردازی",
+    },
+    engine: {
+      title: "موتور",
+      description:
+        "دقیقاً یک افزونه حافظه مالک جایگاه حافظه است. انتخاب یک موتور آن را فعال و بقیه را غیرفعال می‌کند.",
+      rowTitle: "موتور حافظه",
+      off: "خاموش",
+      autoHint:
+        "هیچ موتوری در پیکربندی پین نشده است، بنابراین جایگاه به مالک پیش‌فرض خود بازمی‌گردد.",
+      explicitHint: "این موتور در پیکربندی زیر plugins.slots.memory پین شده است.",
+      offHint: "حافظه در پیکربندی خاموش شده است: plugins.slots.memory روی none تنظیم شده است.",
+      catalogUnavailable: "برای تغییر موتور حافظه به gateway متصل شوید.",
+      changeFailed: "تغییر موتور حافظه ممکن نشد",
+      disabledTitle: "این موتور غیرفعال است",
+      disabledHint:
+        "شکاف حافظه به این افزونه اشاره می‌کند، اما خود افزونه غیرفعال است، بنابراین حافظه در حال اجرا نیست.",
+      enable: "فعال‌سازی",
+    },
+    backend: {
+      title: "بک‌اند",
+      description: "نحوه ذخیره و بازیابی حافظه برای موتور انتخاب‌شده.",
+      rowTitle: "بک‌اند بازیابی",
+      builtin: "داخلی",
+      qmd: "QMD",
+      builtinHint: "فایل‌های حافظه توسط خود OpenClaw ایندکس و جست‌وجو می‌شوند.",
+      qmdHint: "بازیابی به QMD واگذار می‌شود. تنظیمات آن در زیر ظاهر می‌شود.",
+    },
+    addons: {
+      title: "افزودنی‌ها",
+      description:
+        "این افزونه‌ها به‌جای رقابت برای شکاف، روی موتور لایه می‌شوند، بنابراین هر ترکیبی می‌تواند به‌طور هم‌زمان اجرا شود.",
+      activeMemory: {
+        title: "حافظه فعال",
+      },
+      memoryWiki: {
+        title: "ویکی حافظه",
+      },
+      stateUnknown: "نامشخص",
+      manage: "فعال یا غیرفعال کردن افزودنی‌ها",
+      manageLink: "باز کردن افزونه‌ها",
+    },
+    import: {
+      title: "وارد کردن",
+      description: "حافظه موجود از دستیارهای دیگر را به فضای کاری یک عامل بیاورید.",
+      link: "باز کردن وارد کردن حافظه",
+    },
+    search: {
+      intro: "پیش‌فرض‌های امبدینگ و بازیابی که هر عاملی بدون بازنویسی حافظه از آن‌ها استفاده می‌کند.",
+    },
+    dreaming: {
+      intro:
+        "رویاپردازی به‌عنوان یک کار cron مدیریت‌شده در تمام فضاهای کاری عامل‌ها اجرا می‌شود، بنابراین این تنظیمات سراسری هستند. آن‌ها متعلق به افزونه {plugin} هستند.",
+      schedule: {
+        title: "زمان‌بندی",
+        description: "زمان اجرای جاروب کامل و اینکه کدام مدل آن را روایت می‌کند.",
+      },
+      frequency: {
+        label: "فرکانس رویاپردازی",
+        help: "زمان‌بندی Cron برای پویش کامل رؤیاپردازی (سبک، REM، سپس عمیق). برای مقدار پیش‌فرض افزونه خالی بگذارید.",
+        placeholder: "0 3 * * *",
+      },
+      timezone: {
+        label: "منطقه زمانی",
+        help: "منطقه زمانی IANA که برای تفسیر زمان‌بندی cron استفاده می‌شود.",
+        placeholder: "Europe/Vienna",
+      },
+      model: {
+        label: "مدل رؤیاپردازی",
+        help: "بازنویسی ارائه‌دهنده/مدل برای روایت دفترچه رؤیا. نیازمند مجاز بودن بازنویسی مدل زیرعامل است.",
+        placeholder: "anthropic/claude-sonnet-4-6",
+      },
+      verboseLogging: {
+        label: "ثبت گزارش مفصل",
+        help: "هر مرحله رؤیاپردازی را به‌طور مفصل ثبت کنید. هنگام تنظیم آستانه‌ها مفید است.",
+      },
+      storage: {
+        title: "ذخیره‌سازی",
+        description: "جایی که خاطرات ارتقایافته و گزارش‌های رؤیاپردازی نوشته می‌شوند.",
+        modeLabel: "حالت ذخیره‌سازی",
+        modeHelp: "درون‌خطی در فایل حافظه می‌نویسد؛ جداگانه یک فایل گزارش اختصاصی نگه می‌دارد.",
+        modes: {
+          inline: "درون‌خطی",
+          separate: "جداگانه",
+          both: "هر دو",
+        },
+        separateReportsLabel: "گزارش‌های جداگانه",
+        separateReportsHelp: "گزارش‌های رؤیاپردازی را خارج از فایل حافظه اصلی نگه دارید.",
+      },
+      phases: {
+        light: {
+          title: "مرحله سبک",
+          description: "گذر کم‌هزینه روی فعالیت‌های اخیر که نامزدهای بازپخش را آماده می‌کند.",
+        },
+        deep: {
+          title: "فاز عمیق",
+          description: "گذر ارتقای امتیازدهی‌شده که ورودی‌های کوتاه‌مدت را به حافظه ارتقا می‌دهد.",
+        },
+        rem: {
+          title: "فاز REM",
+          description: "گذر الگویی که به دنبال مضامین تکرارشونده در بازه بازنگری می‌گردد.",
+        },
+      },
+      phaseFields: {
+        enabled: "فعال",
+        enabledHelp: "این فاز را در طول جاروب اجرا کن.",
+        lookbackDays: "روزهای بازنگری",
+        lookbackDaysHelp: "این فاز چقدر به عقب می‌خواند. برای مقدار پیش‌فرض افزونه خالی بگذارید.",
+        limit: "محدودیت",
+        limitHelp: "حداکثر ورودی‌هایی که این فاز در هر اجرا پردازش می‌کند.",
+        dedupeSimilarity: "شباهت حذف تکراری",
+        dedupeSimilarityHelp: "شباهتی که بالاتر از آن دو نامزد به‌عنوان تکراری در نظر گرفته می‌شوند.",
+        minScore: "حداقل امتیاز",
+        minScoreHelp: "امتیاز ارتقایی که یک ورودی باید به آن برسد.",
+        minRecallCount: "حداقل بازفراخوانی‌ها",
+        minRecallCountHelp: "یک ورودی چند بار باید بازفراخوانی شود پیش از آنکه بتواند ارتقا یابد.",
+        minUniqueQueries: "حداقل پرس‌وجوهای یکتا",
+        minUniqueQueriesHelp: "چند پرس‌وجوی متمایز باید ورودی را نمایان کرده باشند.",
+        recencyHalfLifeDays: "نیمه‌عمر تازگی (روز)",
+        recencyHalfLifeDaysHelp:
+          "سیگنال‌های بازفراخوانی قدیمی‌تر با چه سرعتی وزن خود را از دست می‌دهند.",
+        maxAgeDays: "بیشینه عمر (روز)",
+        maxAgeDaysHelp: "ورودی‌های کوتاه‌مدت قدیمی‌تر از این را نادیده بگیر.",
+        maxPromotedSnippetTokens: "بیشینه توکن‌های قطعه ارتقایافته",
+        maxPromotedSnippetTokensHelp:
+          "بودجه توکن برای هر قطعه ارتقایافته. منشأ همچنان پیوست می‌ماند.",
+        minPatternStrength: "کمینه قدرت الگو",
+        minPatternStrengthHelp: "قدرتی که یک الگوی تکرارشونده باید به آن برسد تا گزارش شود.",
+      },
+      agentScope: {
+        title: "نمای عامل",
+        description:
+          "تنظیمات بالا سراسری هستند. دفترچه رؤیا، شمارش‌های کوتاه‌مدت و اقدامات نگهداری زیر متعلق به یک عامل هستند.",
+        rowTitle: "عامل",
+      },
+      unsupported: {
+        title: "تنظیمات رؤیاپردازی",
+        rowTitle: "برای این موتور در دسترس نیست",
+        description:
+          "افزونه {plugin} مالک جایگاه حافظه است و طرح پیکربندی آن بخش رؤیاپردازی ندارد، بنابراین این تنظیمات قابل ذخیره نیستند. برای ویرایش آن‌ها موتور را در برگه Overview تغییر دهید.",
+      },
+    },
+  },
   sessionsPage: {
     hubTablistLabel: "بخش‌های رشته‌ها",
   },
@@ -2300,6 +2455,21 @@ export const fa: TranslationMap = {
       description: "به حالت کد اجازه دهید گروه‌هایی از زیرعامل‌ها را به‌صورت موازی هماهنگ کند.",
       empty: "هیچ swarm فعالی وجود ندارد.",
       defaultPhase: "بدون فاز",
+    },
+    toolSearch: {
+      title: "جستجوی ابزار",
+      description:
+        "یک دایرکتوری محدود از ابزارها را قابل مشاهده نگه دارید و بقیه را پشت جستجو به تعویق بیندازید تا کاتالوگ‌های بزرگ MCP و افزونه‌ها دیگر پرامپت را شلوغ نکنند.",
+    },
+    localModelLean: {
+      title: "ابزارهای سبک برای مدل‌های محلی",
+      description:
+        "ابزارهای پیش‌فرض سنگینی را که مدل‌های محلی کوچک‌تر ضعیف مدیریت می‌کنند حذف کنید تا مجموعه‌ای کوتاه‌تر باقی بماند که بتوانند مطمئن از آن استفاده کنند.",
+    },
+    auditMessages: {
+      title: "فراداده حسابرسی پیام",
+      description:
+        "فراداده بدون محتوا برای گفتگوهای مستقیم را در دفتر حسابرسی ثبت کنید. محتوای پیام هرگز ذخیره نمی‌شود.",
     },
   },
   aboutPage: {
@@ -3096,6 +3266,7 @@ export const fa: TranslationMap = {
     },
   },
   attention: {
+    cronErrorUnknown: "خطای ناشناخته",
     cronFailed: "{count} کار cron ناموفق بود",
     cronOverdue: "{count} کار cron از موعد گذشته است",
     modelAuthExpired: "احراز هویت مدل منقضی شده است: {providers}",
@@ -3192,17 +3363,17 @@ export const fa: TranslationMap = {
       off: "رؤیاپردازی خاموش",
     },
     toggleConfirmation: {
-      subtitle: "رؤیاپردازی یک تنظیم سراسری است و فقط به این عامل محدود نمی‌شود.",
-      enableTitle: "روشن کردن رؤیاپردازی برای همه عامل‌ها",
+      subtitle: "رؤیاپردازی یک تنظیم سراسری است؛ محدود به این عامل نیست.",
+      enableTitle: "روشن کردن رؤیاپردازی برای همه Agentها",
       enableDetail:
-        "مرور شبانه رؤیاپردازی در تمام فضاهای کاری پیکربندی‌شده عامل‌ها اجرا می‌شود و یادآوری‌های کوتاه‌مدت را به حافظه بلندمدت منتقل می‌کند. این تغییر بلافاصله اعمال می‌شود.",
+        "پویش شبانه رؤیاپردازی روی هر فضای کاری agent پیکربندی‌شده اجرا می‌شود و یادآوری‌های کوتاه‌مدت را به حافظه بلندمدت ارتقا می‌دهد. این تغییر بلافاصله اعمال می‌شود.",
       enableConfirm: "روشن کردن رؤیاپردازی",
-      disableTitle: "خاموش کردن رؤیاپردازی برای همه عامل‌ها",
+      disableTitle: "خاموش کردن رؤیاپردازی برای همه Agentها",
       disableDetail:
-        "مرور شبانه رؤیاپردازی برای همه عامل‌های پیکربندی‌شده، نه فقط این عامل، متوقف می‌شود. خاطراتی که قبلاً ثبت شده‌اند باقی می‌مانند و مورد جدیدی به حافظه بلندمدت منتقل نمی‌شود. این تغییر بلافاصله اعمال می‌شود.",
+        "پویش شبانه رؤیاپردازی برای هر agent پیکربندی‌شده متوقف می‌شود، نه فقط این یکی. حافظه‌هایی که قبلاً نوشته شده‌اند باقی می‌مانند؛ چیز جدیدی ارتقا نمی‌یابد. این تغییر بلافاصله اعمال می‌شود.",
       disableConfirm: "خاموش کردن رؤیاپردازی",
       saving: "در حال ذخیره…",
-      failed: "اعمال تغییر ممکن نبود. اتصال خود را بررسی و دوباره تلاش کنید.",
+      failed: "اعمال تغییر ممکن نشد. اتصال خود را بررسی کرده و دوباره تلاش کنید.",
     },
     status: {
       active: "رؤیاپردازی فعال",
@@ -3851,6 +4022,12 @@ export const fa: TranslationMap = {
     },
     outputTokens: "{count} توکن خروجی",
     archivedSessionDisabled: "برای ارسال پیام، این نشست را بازیابی کنید.",
+    sessionRoute: {
+      chooseTitle: "یک جلسه انتخاب کنید",
+      multipleMatches: "بیش از یک جلسه با {shortId} مطابقت دارد.",
+      additionalMatches:
+        "نتایج جستجوی بیشتری باقی مانده است. از پیشوند شناسه بلندتری استفاده کنید.",
+    },
     sessionSharing: {
       menu: "اشتراک‌گذاری گفتگو",
       current: "دیده‌شدن گفتگو: {visibility}",
@@ -3902,6 +4079,15 @@ export const fa: TranslationMap = {
       oneMessage: "{count} پیام",
       messages: "{count} پیام",
       activeBranch: "شاخه فعال",
+      gatewayPicker: {
+        menuLabel: "Gateway: {gateway}",
+        primaryTag: "اصلی",
+        setPrimary: "تنظیم به‌عنوان اصلی…",
+        openSettings: "تنظیمات Gateway…",
+        connected: "متصل",
+        unreachable: "در دسترس نیست",
+        unknown: "وضعیت نامشخص",
+      },
     },
     board: {
       faceLabel: "نمای رشته",
@@ -4279,7 +4465,9 @@ export const fa: TranslationMap = {
       detail: "جزئیات",
       close: "بستن {panel}",
       drag: "کشیدن {panel}",
-      resize: "تغییر اندازهٔ {panel}",
+      dropOnEmptyLeft: "انتقال {panel} به نوار کناری خالی سمت چپ",
+      dropOnEmptyRight: "انتقال {panel} به نوار کناری خالی سمت راست",
+      resize: "تغییر اندازه {panel}",
     },
     thread: {
       search: "جستجوی پیام‌ها",

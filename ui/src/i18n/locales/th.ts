@@ -41,6 +41,7 @@ export const th: TranslationMap = {
     unselect: "ยกเลิกการเลือก",
     enabled: "เปิดใช้งาน",
     disabled: "ปิดใช้งาน",
+    failed: "ล้มเหลว",
     none: "ไม่มี",
     na: "n/a",
     never: "never",
@@ -234,11 +235,6 @@ export const th: TranslationMap = {
       schemaUnavailable: "ไม่มีสคีมา ใช้ Raw",
       channelSchemaUnavailable: "ไม่มีสคีมาการตั้งค่าช่อง",
       loadingSchema: "กำลังโหลดสคีมาการตั้งค่า…",
-    },
-    health: {
-      title: "สถานะช่องทาง",
-      subtitle: "ภาพรวมสถานะของช่องทางจากเกตเวย์",
-      noSnapshotYet: "ยังไม่มีภาพรวมสถานะ",
     },
     generic: {
       subtitle: "สถานะและการกำหนดค่าของช่องทาง",
@@ -591,6 +587,11 @@ export const th: TranslationMap = {
     createOutcomeUnknown:
       "Gateway มีการเปลี่ยนแปลงขณะที่เซสชันนี้กำลังเริ่มต้น โปรดตรวจสอบเซสชันล่าสุดก่อนเริ่มงานนี้อีกครั้ง",
     catalogUnavailable: "เป้าหมายของเซสชันนี้ไม่พร้อมใช้งาน",
+  },
+  dashboardsPage: {
+    emptyTitle: "ยังไม่มีแดชบอร์ด",
+    emptyDescription: "เปิดเธรดและสลับไปที่หน้า Dashboard เพื่อเพิ่มที่นี่",
+    loadError: "ไม่สามารถโหลดแดชบอร์ดได้: {error}",
   },
   sessionsView: {
     deletePreservedWorktrees:
@@ -967,6 +968,8 @@ export const th: TranslationMap = {
       notCreatedYet: "Not Created Yet",
       updatedUnknown: "Updated Unknown",
       missingHint: "This file is missing. Saving will create it in the agent workspace.",
+      addFile: "เพิ่มไฟล์…",
+      createHint: "ไฟล์นี้ยังไม่มีอยู่ การบันทึกจะสร้างไฟล์ในพื้นที่ทำงานของ agent",
       content: "Content",
       words: "{count} words",
       lines: "lines",
@@ -1807,6 +1810,7 @@ export const th: TranslationMap = {
     skillWorkshop: "Skill Workshop",
     nodes: "โหนด",
     chat: "แชต",
+    dashboards: "แดชบอร์ด",
     custodian: "OpenClaw",
     config: "Config",
     profile: "โปรไฟล์",
@@ -1814,6 +1818,7 @@ export const th: TranslationMap = {
     appearance: "ลักษณะที่ปรากฏ",
     automation: "ระบบอัตโนมัติ",
     mcp: "MCP",
+    memory: "หน่วยความจำ",
     infrastructure: "โครงสร้างพื้นฐาน",
     labs: "Labs",
     about: "เกี่ยวกับ",
@@ -1843,6 +1848,7 @@ export const th: TranslationMap = {
     skillWorkshop: "ตรวจสอบ ปรับแต่ง และนำข้อเสนอไปใช้ก่อนที่จะกลายเป็น Skills ที่ใช้งานจริง",
     nodes: "อุปกรณ์ที่จับคู่และคำสั่ง",
     chat: "แชตเกตเวย์สำหรับการดำเนินการอย่างรวดเร็ว",
+    dashboards: "เธรดที่เปิดบนหน้าแดชบอร์ด",
     custodian: "การตั้งค่าและดูแลระบบ",
     config: "แก้ไข openclaw.json",
     profile: "สถิติ สตรีก และชีวิตในแนวปะการังของเอเจนต์คุณ",
@@ -1850,6 +1856,7 @@ export const th: TranslationMap = {
     appearance: "ธีม UI และการตั้งค่าตัวช่วยเริ่มต้น",
     automation: "คำสั่ง hooks cron และ plugins",
     mcp: "เซิร์ฟเวอร์ MCP, การยืนยันตัวตน, เครื่องมือ และการวินิจฉัย",
+    memory: "เอนจินหน่วยความจำ แบ็กเอนด์ การค้นหา และ dreaming",
     infrastructure: "การตั้งค่าเกตเวย์ เว็บ เบราว์เซอร์ และสื่อ",
     labs: "ความสามารถของเอเจนต์และเครื่องมือแบบทดลอง",
     about: "ข้อมูลระบุตัวตนของบิลด์ Control UI และ Gateway ที่เชื่อมต่อ",
@@ -2113,6 +2120,149 @@ export const th: TranslationMap = {
     tlsVerifyOff: "ปิดการตรวจสอบ TLS",
     mtls: "mTLS",
   },
+  memoryPage: {
+    tablistLabel: "ส่วนของหน่วยความจำ",
+    tabs: {
+      overview: "ภาพรวม",
+      search: "ค้นหา",
+      dreaming: "Dreaming",
+    },
+    engine: {
+      title: "เอนจิน",
+      description:
+        "มีปลั๊กอินหน่วยความจำเพียงตัวเดียวที่ครอบครองสล็อตหน่วยความจำ การเลือกเอนจินจะเปิดใช้งานตัวนั้นและปิดใช้งานตัวอื่น",
+      rowTitle: "เอนจินหน่วยความจำ",
+      off: "ปิด",
+      autoHint: "ไม่มีเอนจินที่ปักหมุดไว้ในการตั้งค่า ดังนั้นสล็อตจะกลับไปใช้เจ้าของเริ่มต้น",
+      explicitHint: "เอนจินนี้ถูกปักหมุดไว้ในการตั้งค่าภายใต้ plugins.slots.memory",
+      offHint: "หน่วยความจำถูกปิดในการตั้งค่า: plugins.slots.memory ถูกตั้งเป็น none",
+      catalogUnavailable: "เชื่อมต่อกับ gateway เพื่อเปลี่ยนเอนจินหน่วยความจำ",
+      changeFailed: "ไม่สามารถเปลี่ยนเอนจินหน่วยความจำได้",
+      disabledTitle: "เอนจินนี้ถูกปิดใช้งาน",
+      disabledHint: "ช่องหน่วยความจำชี้ไปที่ปลั๊กอินนี้ แต่ตัวปลั๊กอินเองถูกปิดใช้งาน หน่วยความจำจึงไม่ทำงาน",
+      enable: "เปิดใช้งาน",
+    },
+    backend: {
+      title: "แบ็กเอนด์",
+      description: "วิธีจัดเก็บและเรียกดูหน่วยความจำสำหรับเอนจินที่เลือก",
+      rowTitle: "แบ็กเอนด์การเรียกดู",
+      builtin: "ในตัว",
+      qmd: "QMD",
+      builtinHint: "ไฟล์หน่วยความจำถูกจัดทำดัชนีและค้นหาโดย OpenClaw เอง",
+      qmdHint: "การเรียกดูถูกมอบหมายให้ QMD การตั้งค่าจะปรากฏด้านล่าง",
+    },
+    addons: {
+      title: "ส่วนเสริม",
+      description: "ปลั๊กอินเหล่านี้ทำงานซ้อนอยู่บนเอนจินแทนที่จะแย่งกันใช้ช่อง จึงสามารถทำงานร่วมกันได้ทุกชุด",
+      activeMemory: {
+        title: "หน่วยความจำที่ใช้งาน",
+      },
+      memoryWiki: {
+        title: "วิกิหน่วยความจำ",
+      },
+      stateUnknown: "ไม่ทราบ",
+      manage: "เปิดหรือปิดใช้งานส่วนเสริม",
+      manageLink: "เปิด Plugins",
+    },
+    import: {
+      title: "นำเข้า",
+      description: "นำหน่วยความจำที่มีอยู่จากผู้ช่วยอื่นเข้ามาในพื้นที่ทำงานของเอเจนต์",
+      link: "เปิดการนำเข้าหน่วยความจำ",
+    },
+    search: {
+      intro: "ค่าเริ่มต้นของการฝังและการเรียกดูที่ใช้ร่วมกันโดยทุกเอเจนต์ที่ไม่มีการแทนที่หน่วยความจำ",
+    },
+    dreaming: {
+      intro:
+        "Dreaming ทำงานเป็นงาน cron ที่จัดการเดียวครอบคลุมทุกพื้นที่ทำงานของเอเจนต์ ดังนั้นการตั้งค่าเหล่านี้จึงเป็นแบบส่วนกลาง และเป็นของปลั๊กอิน {plugin}",
+      schedule: {
+        title: "กำหนดการ",
+        description: "เวลาที่การกวาดเต็มรูปแบบทำงานและโมเดลใดที่บรรยายมัน",
+      },
+      frequency: {
+        label: "ความถี่ของ Dreaming",
+        help: "จังหวะ cron สำหรับการกวาดล้างการฝันแบบเต็มรูปแบบ (light, REM, จากนั้น deep) เว้นว่างไว้เพื่อใช้ค่าเริ่มต้นของปลั๊กอิน",
+        placeholder: "0 3 * * *",
+      },
+      timezone: {
+        label: "เขตเวลา",
+        help: "เขตเวลา IANA ที่ใช้ตีความจังหวะ cron",
+        placeholder: "Europe/Vienna",
+      },
+      model: {
+        label: "โมเดลการฝัน",
+        help: "การแทนที่ผู้ให้บริการ/โมเดลสำหรับการเล่าเรื่องไดอารี่ความฝัน ต้องอนุญาตให้แทนที่โมเดล subagent ได้",
+        placeholder: "anthropic/claude-sonnet-4-6",
+      },
+      verboseLogging: {
+        label: "บันทึกแบบละเอียด",
+        help: "บันทึกแต่ละช่วงของการฝันอย่างละเอียด มีประโยชน์เมื่อปรับแต่งเกณฑ์",
+      },
+      storage: {
+        title: "ที่จัดเก็บ",
+        description: "ตำแหน่งที่เขียนหน่วยความจำที่ได้รับการเลื่อนขั้นและรายงานการฝัน",
+        modeLabel: "โหมดการจัดเก็บ",
+        modeHelp: "Inline เขียนลงในไฟล์หน่วยความจำ; separate เก็บไฟล์รายงานแยกต่างหาก",
+        modes: {
+          inline: "Inline",
+          separate: "Separate",
+          both: "Both",
+        },
+        separateReportsLabel: "รายงานแยกต่างหาก",
+        separateReportsHelp: "แยกรายงานการฝันออกจากไฟล์หน่วยความจำหลัก",
+      },
+      phases: {
+        light: {
+          title: "ช่วง Light",
+          description: "การสแกนกิจกรรมล่าสุดแบบประหยัดที่จัดเตรียมรายการสำหรับการเล่นซ้ำ",
+        },
+        deep: {
+          title: "เฟส Deep",
+          description: "การสแกนแบบให้คะแนนเพื่อเลื่อนรายการระยะสั้นขึ้นเป็นหน่วยความจำ",
+        },
+        rem: {
+          title: "เฟส REM",
+          description: "การสแกนรูปแบบที่มองหาธีมที่เกิดซ้ำตลอดช่วงเวลาย้อนหลัง",
+        },
+      },
+      phaseFields: {
+        enabled: "เปิดใช้งาน",
+        enabledHelp: "เรียกใช้เฟสนี้ระหว่างการสแกน",
+        lookbackDays: "จำนวนวันย้อนหลัง",
+        lookbackDaysHelp: "เฟสนี้อ่านย้อนหลังไปไกลแค่ไหน เว้นว่างไว้เพื่อใช้ค่าเริ่มต้นของปลั๊กอิน",
+        limit: "ขีดจำกัด",
+        limitHelp: "จำนวนรายการสูงสุดที่เฟสนี้ประมวลผลต่อการเรียกใช้",
+        dedupeSimilarity: "ความคล้ายในการกำจัดข้อมูลซ้ำ",
+        dedupeSimilarityHelp: "ระดับความคล้ายที่เกินกว่านี้จะถือว่าสองรายการเป็นรายการซ้ำกัน",
+        minScore: "คะแนนขั้นต่ำ",
+        minScoreHelp: "คะแนนการเลื่อนขั้นที่รายการต้องทำได้ถึง",
+        minRecallCount: "จำนวนการเรียกคืนขั้นต่ำ",
+        minRecallCountHelp: "รายการต้องถูกเรียกคืนบ่อยแค่ไหนก่อนจึงจะเลื่อนขั้นได้",
+        minUniqueQueries: "จำนวนคำค้นที่ไม่ซ้ำขั้นต่ำ",
+        minUniqueQueriesHelp: "จำนวนคำค้นที่แตกต่างกันที่ต้องแสดงรายการนี้ขึ้นมา",
+        recencyHalfLifeDays: "ครึ่งชีวิตความใหม่ (วัน)",
+        recencyHalfLifeDaysHelp: "สัญญาณการเรียกคืนที่เก่ากว่าจะลดน้ำหนักลงเร็วแค่ไหน",
+        maxAgeDays: "อายุสูงสุด (วัน)",
+        maxAgeDaysHelp: "ละเว้นรายการระยะสั้นที่เก่ากว่านี้",
+        maxPromotedSnippetTokens: "โทเค็นสูงสุดของสนิปเป็ตที่โปรโมต",
+        maxPromotedSnippetTokensHelp: "งบประมาณโทเค็นสำหรับสนิปเป็ตที่โปรโมตแต่ละรายการ ข้อมูลที่มายังคงแนบอยู่",
+        minPatternStrength: "ความแรงของรูปแบบขั้นต่ำ",
+        minPatternStrengthHelp: "ความแรงที่รูปแบบซ้ำต้องถึงเพื่อจะถูกรายงาน",
+      },
+      agentScope: {
+        title: "มุมมองเอเจนต์",
+        description:
+          "การตั้งค่าด้านบนเป็นแบบรวมทั้งระบบ ไดอารีความฝัน จำนวนความจำระยะสั้น และการดำเนินการบำรุงรักษาด้านล่างเป็นของเอเจนต์เดียว",
+        rowTitle: "Agent",
+      },
+      unsupported: {
+        title: "การตั้งค่าการฝัน",
+        rowTitle: "ไม่พร้อมใช้งานสำหรับเอนจินนี้",
+        description:
+          "ปลั๊กอิน {plugin} เป็นเจ้าของช่องความจำ และสคีมาการตั้งค่าของมันไม่มีส่วนการฝัน จึงไม่สามารถจัดเก็บการตั้งค่าเหล่านี้ได้ สลับเอนจินในแท็บภาพรวมเพื่อแก้ไข",
+      },
+    },
+  },
   sessionsPage: {
     hubTablistLabel: "ส่วนของเธรด",
   },
@@ -2263,6 +2413,21 @@ export const th: TranslationMap = {
       description: "ให้ Code Mode ประสานงานกลุ่มของ subagent แบบขนาน",
       empty: "ไม่มี swarm ที่ทำงานอยู่",
       defaultPhase: "ไม่มีเฟส",
+    },
+    toolSearch: {
+      title: "ค้นหาเครื่องมือ",
+      description:
+        "ให้ไดเรกทอรีเครื่องมือที่มีขอบเขตจำกัดปรากฏอยู่ และเลื่อนส่วนที่เหลือไว้ด้านหลังการค้นหา เพื่อไม่ให้แคตตาล็อก MCP และปลั๊กอินขนาดใหญ่มาเบียดพรอมต์",
+    },
+    localModelLean: {
+      title: "เครื่องมือแบบเบาสำหรับโมเดลในเครื่อง",
+      description:
+        "ตัดเครื่องมือค่าเริ่มต้นที่หนักซึ่งโมเดลในเครื่องขนาดเล็กจัดการได้ไม่ดี เหลือชุดที่สั้นลงซึ่งใช้ได้อย่างน่าเชื่อถือ",
+    },
+    auditMessages: {
+      title: "ข้อมูลเมทาดาทาการตรวจสอบข้อความ",
+      description:
+        "บันทึกเมทาดาทาที่ไม่มีเนื้อหาสำหรับการสนทนาโดยตรงในบันทึกการตรวจสอบ เนื้อหาข้อความจะไม่ถูกจัดเก็บ",
     },
   },
   aboutPage: {
@@ -3050,6 +3215,7 @@ export const th: TranslationMap = {
     },
   },
   attention: {
+    cronErrorUnknown: "ข้อผิดพลาดที่ไม่ทราบสาเหตุ",
     cronFailed: "งาน cron ล้มเหลว {count} งาน",
     cronOverdue: "งาน cron เลยกำหนด {count} งาน",
     modelAuthExpired: "การยืนยันตัวตนของโมเดลหมดอายุ: {providers}",
@@ -3146,17 +3312,17 @@ export const th: TranslationMap = {
       off: "ปิดการฝัน",
     },
     toggleConfirmation: {
-      subtitle: "Dreaming เป็นการตั้งค่าส่วนกลาง ไม่ได้จำกัดเฉพาะเอเจนต์นี้",
-      enableTitle: "เปิด Dreaming สำหรับเอเจนต์ทั้งหมด",
+      subtitle: "การฝันเป็นการตั้งค่าแบบรวมทั้งระบบ ไม่ได้จำกัดขอบเขตเฉพาะเอเจนต์นี้",
+      enableTitle: "เปิดใช้งาน Dreaming สำหรับเอเจนต์ทั้งหมด",
       enableDetail:
-        "การประมวลผล Dreaming ประจำคืนจะทำงานในพื้นที่ทำงานของเอเจนต์ที่กำหนดค่าไว้ทั้งหมด โดยเลื่อนระดับความทรงจำระยะสั้นไปเป็นความทรงจำระยะยาว การเปลี่ยนแปลงนี้มีผลทันที",
-      enableConfirm: "เปิด Dreaming",
-      disableTitle: "ปิด Dreaming สำหรับเอเจนต์ทั้งหมด",
+        "การกวาด Dreaming ตอนกลางคืนจะทำงานในทุกพื้นที่ทำงานของเอเจนต์ที่กำหนดค่าไว้ โดยเลื่อนความทรงจำระยะสั้นให้กลายเป็นความทรงจำระยะยาว การเปลี่ยนแปลงนี้มีผลทันที",
+      enableConfirm: "เปิดใช้งาน Dreaming",
+      disableTitle: "ปิดใช้งาน Dreaming สำหรับเอเจนต์ทั้งหมด",
       disableDetail:
-        "การประมวลผล Dreaming ประจำคืนจะหยุดสำหรับเอเจนต์ที่กำหนดค่าไว้ทั้งหมด ไม่ใช่แค่เอเจนต์นี้ ความทรงจำที่บันทึกไว้แล้วจะยังคงอยู่ และจะไม่มีการเลื่อนระดับความทรงจำใหม่ การเปลี่ยนแปลงนี้มีผลทันที",
-      disableConfirm: "ปิด Dreaming",
+        "การกวาด Dreaming ตอนกลางคืนจะหยุดสำหรับเอเจนต์ที่กำหนดค่าไว้ทุกตัว ไม่ใช่เฉพาะตัวนี้ ความทรงจำที่บันทึกไว้แล้วจะยังคงอยู่ แต่จะไม่มีการเลื่อนความทรงจำใหม่ การเปลี่ยนแปลงนี้มีผลทันที",
+      disableConfirm: "ปิดใช้งาน Dreaming",
       saving: "กำลังบันทึก…",
-      failed: "ไม่สามารถใช้การเปลี่ยนแปลงได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
+      failed: "ไม่สามารถใช้การเปลี่ยนแปลงได้ ตรวจสอบการเชื่อมต่อของคุณแล้วลองอีกครั้ง",
     },
     status: {
       active: "การฝันกำลังทำงาน",
@@ -3780,6 +3946,11 @@ export const th: TranslationMap = {
     },
     outputTokens: "{count} โทเค็นเอาต์พุต",
     archivedSessionDisabled: "กู้คืนเซสชันนี้เพื่อส่งข้อความ",
+    sessionRoute: {
+      chooseTitle: "เลือกเซสชัน",
+      multipleMatches: "มีเซสชันมากกว่าหนึ่งรายการตรงกับ {shortId}",
+      additionalMatches: "ยังมีผลการค้นหาอยู่ ใช้คำนำหน้า id ที่ยาวขึ้น",
+    },
     sessionSharing: {
       menu: "การแชร์เธรด",
       current: "การมองเห็นเธรด: {visibility}",
@@ -3831,6 +4002,15 @@ export const th: TranslationMap = {
       oneMessage: "{count} ข้อความ",
       messages: "{count} ข้อความ",
       activeBranch: "branch ที่ใช้งานอยู่",
+      gatewayPicker: {
+        menuLabel: "Gateway: {gateway}",
+        primaryTag: "หลัก",
+        setPrimary: "ตั้งเป็นหลัก…",
+        openSettings: "การตั้งค่า Gateway…",
+        connected: "เชื่อมต่อแล้ว",
+        unreachable: "เข้าถึงไม่ได้",
+        unknown: "สถานะไม่ทราบ",
+      },
     },
     board: {
       faceLabel: "หน้า thread",
@@ -4020,7 +4200,7 @@ export const th: TranslationMap = {
       threads: "เธรด",
       groups: "กลุ่ม",
       coding: "การเขียนโค้ด",
-      catalogViewOptions: "ตัวเลือกการแสดงผล",
+      catalogViewOptions: "ตัวเลือกมุมมอง",
       catalogGroupByProject: "โปรเจกต์",
       catalogGroupByPerson: "บุคคล",
       openSessionMenu: "Open session menu",
@@ -4208,6 +4388,8 @@ export const th: TranslationMap = {
       detail: "รายละเอียด",
       close: "ปิด {panel}",
       drag: "ลาก {panel}",
+      dropOnEmptyLeft: "ย้าย {panel} ไปยังแถบด้านซ้ายที่ว่าง",
+      dropOnEmptyRight: "ย้าย {panel} ไปยังแถบด้านขวาที่ว่าง",
       resize: "ปรับขนาด {panel}",
     },
     thread: {

@@ -26,14 +26,7 @@ export function resolvePluginConfigObject(
     : undefined;
 }
 
-/**
- * Resolves live plugin config through a loader, falling back to startup config when unavailable.
- *
- * @deprecated Read `api.pluginConfig` instead: every `plugins.*` change reloads the plugin and
- * reruns `register(api)` with freshly validated config, so the loader indirection is redundant.
- * Retained because this subpath stays public until 2026-10-30 for dist-excluded official plugins
- * that consume it from the installed core; removing the named export would fail their module load.
- */
+/** Resolves live plugin config through a loader, falling back to startup config when unavailable. */
 export function resolveLivePluginConfigObject(
   runtimeConfigLoader: (() => OpenClawConfig | undefined) | undefined,
   pluginId: string,

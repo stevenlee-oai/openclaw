@@ -41,6 +41,7 @@ export const pl: TranslationMap = {
     unselect: "Odznacz",
     enabled: "Włączone",
     disabled: "Wyłączone",
+    failed: "Niepowodzenie",
     none: "brak",
     na: "n/d",
     never: "never",
@@ -247,11 +248,6 @@ export const pl: TranslationMap = {
       schemaUnavailable: "Schemat niedostępny. Użyj trybu Raw.",
       channelSchemaUnavailable: "Schemat konfiguracji kanału niedostępny.",
       loadingSchema: "Ładowanie schematu konfiguracji…",
-    },
-    health: {
-      title: "Stan kanału",
-      subtitle: "Migawki stanu kanału z Gateway.",
-      noSnapshotYet: "Brak migawki.",
     },
     generic: {
       subtitle: "Stan kanału i konfiguracja.",
@@ -603,7 +599,7 @@ export const pl: TranslationMap = {
     incognito: "Tryb incognito",
     incognitoDescription: "Zachowaj ten wątek tylko do ponownego uruchomienia Gateway",
     draft: "Wersja robocza",
-    draftDescription: "Zachowaj ten wątek dla siebie, dopóki go nie opublikujesz",
+    draftDescription: "Zachowaj ten wątek dla siebie do momentu opublikowania",
     messagePlaceholder: "Nad czym ma pracować ta sesja?",
     readingAttachment: "Odczytywanie załącznika",
     start: "Rozpocznij sesję",
@@ -612,6 +608,11 @@ export const pl: TranslationMap = {
     createOutcomeUnknown:
       "Gateway zmienił się podczas uruchamiania tej sesji. Sprawdź ostatnie sesje, zanim ponownie rozpoczniesz to zadanie.",
     catalogUnavailable: "Wybrany cel sesji jest niedostępny.",
+  },
+  dashboardsPage: {
+    emptyTitle: "Brak paneli",
+    emptyDescription: "Otwórz wątek i przełącz na widok panelu, aby dodać go tutaj.",
+    loadError: "Nie można załadować paneli: {error}",
   },
   sessionsView: {
     deletePreservedWorktrees:
@@ -995,6 +996,9 @@ export const pl: TranslationMap = {
       notCreatedYet: "Not Created Yet",
       updatedUnknown: "Updated Unknown",
       missingHint: "This file is missing. Saving will create it in the agent workspace.",
+      addFile: "Dodaj plik…",
+      createHint:
+        "Ten plik jeszcze nie istnieje. Zapisanie utworzy go w przestrzeni roboczej agenta.",
       content: "Content",
       words: "{count} words",
       lines: "lines",
@@ -1850,6 +1854,7 @@ export const pl: TranslationMap = {
     skillWorkshop: "Warsztat Skills",
     nodes: "Węzły",
     chat: "Czat",
+    dashboards: "Panele",
     custodian: "OpenClaw",
     config: "Konfiguracja",
     profile: "Profil",
@@ -1857,6 +1862,7 @@ export const pl: TranslationMap = {
     appearance: "Wygląd",
     automation: "Automatyzacja",
     mcp: "MCP",
+    memory: "Pamięć",
     infrastructure: "Infrastruktura",
     labs: "Labs",
     about: "O aplikacji",
@@ -1886,6 +1892,7 @@ export const pl: TranslationMap = {
     skillWorkshop: "Przeglądaj, dopracowuj i stosuj propozycje, zanim staną się aktywnymi skills.",
     nodes: "Sparowane urządzenia i polecenia.",
     chat: "Czat Gateway do szybkich interwencji.",
+    dashboards: "Wątki otwierające się w widoku panelu.",
     custodian: "Konfiguracja i utrzymanie systemu.",
     config: "Edytuj openclaw.json.",
     profile: "Statystyki, serie i życie Twojego agenta na rafie.",
@@ -1893,6 +1900,7 @@ export const pl: TranslationMap = {
     appearance: "Motyw, UI i ustawienia kreatora konfiguracji.",
     automation: "Polecenia, hooki, cron i pluginy.",
     mcp: "Serwery MCP, uwierzytelnianie, narzędzia i diagnostyka.",
+    memory: "Silnik pamięci, backend, wyszukiwanie i marzenia senne.",
     infrastructure: "Ustawienia Gateway, web, przeglądarki i multimediów.",
     labs: "Eksperymentalne funkcje agenta i narzędzi.",
     about: "Control UI i połączony Gateway tworzą tożsamość kompilacji.",
@@ -2168,6 +2176,160 @@ export const pl: TranslationMap = {
     tlsVerifyOff: "weryfikacja TLS wyłączona",
     mtls: "mTLS",
   },
+  memoryPage: {
+    tablistLabel: "Sekcje pamięci",
+    tabs: {
+      overview: "Przegląd",
+      search: "Szukaj",
+      dreaming: "Marzenia senne",
+    },
+    engine: {
+      title: "Silnik",
+      description:
+        "Dokładnie jedna wtyczka pamięci zajmuje slot pamięci. Wybranie silnika włącza go i wyłącza pozostałe.",
+      rowTitle: "Silnik pamięci",
+      off: "Wyłączone",
+      autoHint:
+        "Żaden silnik nie jest przypięty w konfiguracji, więc slot używa domyślnego właściciela.",
+      explicitHint: "Ten silnik jest przypięty w konfiguracji pod plugins.slots.memory.",
+      offHint: "Pamięć jest wyłączona w konfiguracji: plugins.slots.memory ustawiono na none.",
+      catalogUnavailable: "Połącz się z gateway, aby zmienić silnik pamięci.",
+      changeFailed: "Nie można zmienić silnika pamięci",
+      disabledTitle: "Ten silnik jest wyłączony",
+      disabledHint:
+        "Slot pamięci wskazuje na tę wtyczkę, ale sama wtyczka jest wyłączona, więc pamięć nie działa.",
+      enable: "Włącz",
+    },
+    backend: {
+      title: "Backend",
+      description: "Sposób przechowywania i pobierania pamięci dla wybranego silnika.",
+      rowTitle: "Backend pobierania",
+      builtin: "Wbudowany",
+      qmd: "QMD",
+      builtinHint: "Pliki pamięci są indeksowane i przeszukiwane przez samego OpenClaw.",
+      qmdHint: "Pobieranie jest delegowane do QMD. Jego ustawienia znajdują się poniżej.",
+    },
+    addons: {
+      title: "Dodatki",
+      description:
+        "Te wtyczki nakładają się na silnik zamiast rywalizować o slot, więc każda kombinacja może działać jednocześnie.",
+      activeMemory: {
+        title: "Aktywna pamięć",
+      },
+      memoryWiki: {
+        title: "Wiki pamięci",
+      },
+      stateUnknown: "Nieznany",
+      manage: "Włącz lub wyłącz dodatki",
+      manageLink: "Otwórz wtyczki",
+    },
+    import: {
+      title: "Import",
+      description: "Przenieś istniejącą pamięć z innych asystentów do obszaru roboczego agenta.",
+      link: "Otwórz import pamięci",
+    },
+    search: {
+      intro:
+        "Domyślne ustawienia osadzania i pobierania współdzielone przez każdego agenta bez nadpisania pamięci.",
+    },
+    dreaming: {
+      intro:
+        "Śnienie działa jako jedno zarządzane zadanie cron we wszystkich obszarach roboczych agentów, więc te ustawienia są globalne. Należą do wtyczki {plugin}.",
+      schedule: {
+        title: "Harmonogram",
+        description: "Kiedy uruchamia się pełne przetwarzanie i który model je narracje.",
+      },
+      frequency: {
+        label: "Częstotliwość śnienia",
+        help: "Harmonogram cron dla pełnego cyklu marzenia sennego (lekki, REM, następnie głęboki). Pozostaw puste, aby użyć domyślnego ustawienia wtyczki.",
+        placeholder: "0 3 * * *",
+      },
+      timezone: {
+        label: "Strefa czasowa",
+        help: "Strefa czasowa IANA używana do interpretacji harmonogramu cron.",
+        placeholder: "Europe/Vienna",
+      },
+      model: {
+        label: "Model marzenia sennego",
+        help: "Zastąpienie dostawcy/modelu dla narracji dziennika snów. Wymaga zezwolenia na zastępowanie modeli podagentów.",
+        placeholder: "anthropic/claude-sonnet-4-6",
+      },
+      verboseLogging: {
+        label: "Szczegółowe logowanie",
+        help: "Loguj każdą fazę marzenia sennego ze szczegółami. Przydatne przy dostrajaniu progów.",
+      },
+      storage: {
+        title: "Przechowywanie",
+        description: "Miejsce zapisu awansowanych wspomnień i raportów marzenia sennego.",
+        modeLabel: "Tryb przechowywania",
+        modeHelp: "Inline zapisuje do pliku pamięci; separate zachowuje dedykowany plik raportu.",
+        modes: {
+          inline: "Inline",
+          separate: "Osobno",
+          both: "Oba",
+        },
+        separateReportsLabel: "Osobne raporty",
+        separateReportsHelp: "Trzymaj raporty marzenia sennego poza głównym plikiem pamięci.",
+      },
+      phases: {
+        light: {
+          title: "Faza lekka",
+          description:
+            "Tani przegląd ostatniej aktywności, który przygotowuje kandydatów do powtórki.",
+        },
+        deep: {
+          title: "Faza głęboka",
+          description:
+            "Punktowany przegląd promocyjny, który przenosi krótkotrwałe wpisy do pamięci.",
+        },
+        rem: {
+          title: "Faza REM",
+          description: "Przegląd wzorców szukający powracających motywów w oknie retrospekcji.",
+        },
+      },
+      phaseFields: {
+        enabled: "Włączone",
+        enabledHelp: "Uruchom tę fazę podczas przeglądu.",
+        lookbackDays: "Dni retrospekcji",
+        lookbackDaysHelp:
+          "Jak daleko wstecz sięga ta faza. Pozostaw puste dla wartości domyślnej wtyczki.",
+        limit: "Limit",
+        limitHelp: "Maksymalna liczba wpisów przetwarzanych przez tę fazę w jednym uruchomieniu.",
+        dedupeSimilarity: "Podobieństwo deduplikacji",
+        dedupeSimilarityHelp:
+          "Podobieństwo, powyżej którego dwaj kandydaci są traktowani jako duplikaty.",
+        minScore: "Minimalny wynik",
+        minScoreHelp: "Wynik promocji, który wpis musi osiągnąć.",
+        minRecallCount: "Minimalna liczba przywołań",
+        minRecallCountHelp:
+          "Jak często wpis musi zostać przywołany, zanim będzie mógł zostać awansowany.",
+        minUniqueQueries: "Minimalna liczba unikalnych zapytań",
+        minUniqueQueriesHelp: "Ile odrębnych zapytań musiało ujawnić dany wpis.",
+        recencyHalfLifeDays: "Okres półtrwania świeżości (dni)",
+        recencyHalfLifeDaysHelp: "Jak szybko starsze sygnały przywołania tracą na znaczeniu.",
+        maxAgeDays: "Maksymalny wiek (dni)",
+        maxAgeDaysHelp: "Ignoruj wpisy krótkoterminowe starsze niż to.",
+        maxPromotedSnippetTokens: "Maks. liczba tokenów awansowanego fragmentu",
+        maxPromotedSnippetTokensHelp:
+          "Budżet tokenów dla każdego awansowanego fragmentu. Pochodzenie pozostaje dołączone.",
+        minPatternStrength: "Minimalna siła wzorca",
+        minPatternStrengthHelp:
+          "Siła, jaką musi osiągnąć powtarzający się wzorzec, aby został zgłoszony.",
+      },
+      agentScope: {
+        title: "Widok agenta",
+        description:
+          "Powyższe ustawienia są globalne. Dziennik snów, liczniki krótkoterminowe i akcje konserwacyjne poniżej należą do jednego agenta.",
+        rowTitle: "Agent",
+      },
+      unsupported: {
+        title: "Ustawienia śnienia",
+        rowTitle: "Niedostępne dla tego silnika",
+        description:
+          "Wtyczka {plugin} zajmuje slot pamięci, a jej schemat konfiguracji nie ma sekcji śnienia, więc tych ustawień nie można zapisać. Zmień silnik na karcie Przegląd, aby je edytować.",
+      },
+    },
+  },
   sessionsPage: {
     hubTablistLabel: "Sekcje wątków",
   },
@@ -2334,6 +2496,21 @@ export const pl: TranslationMap = {
       description: "Pozwól trybowi kodu koordynować grupy podagentów równolegle.",
       empty: "Brak aktywnych rojów.",
       defaultPhase: "Bez fazy",
+    },
+    toolSearch: {
+      title: "Wyszukiwanie narzędzi",
+      description:
+        "Utrzymuj widoczny ograniczony katalog narzędzi i odłóż resztę za wyszukiwanie, aby duże katalogi MCP i wtyczek przestały zatłaczać prompt.",
+    },
+    localModelLean: {
+      title: "Uproszczone narzędzia dla modeli lokalnych",
+      description:
+        "Usuń ciężkie domyślne narzędzia, które mniejsze modele lokalne obsługują słabo, pozostawiając krótszy zestaw, którego mogą używać niezawodnie.",
+    },
+    auditMessages: {
+      title: "Metadane audytu wiadomości",
+      description:
+        "Rejestruj metadane bez treści dla bezpośrednich rozmów w rejestrze audytu. Treść wiadomości nigdy nie jest przechowywana.",
     },
   },
   aboutPage: {
@@ -3131,6 +3308,7 @@ export const pl: TranslationMap = {
     },
   },
   attention: {
+    cronErrorUnknown: "Nieznany błąd",
     cronFailed: "Nieudane zadania cron: {count}",
     cronOverdue: "Zaległe zadania cron: {count}",
     modelAuthExpired: "Uwierzytelnienie modelu wygasło: {providers}",
@@ -3230,11 +3408,11 @@ export const pl: TranslationMap = {
       subtitle: "Śnienie jest ustawieniem globalnym; nie jest ograniczone do tego agenta.",
       enableTitle: "Włącz śnienie dla wszystkich agentów",
       enableDetail:
-        "Nocny proces śnienia zostanie uruchomiony we wszystkich skonfigurowanych przestrzeniach roboczych agentów, przenosząc wspomnienia krótkoterminowe do pamięci długoterminowej. Zmiana zostanie zastosowana natychmiast.",
+        "Nocny cykl śnienia będzie uruchamiany we wszystkich skonfigurowanych przestrzeniach roboczych agentów, przenosząc krótkoterminowe wspomnienia do pamięci długoterminowej. Ma to zastosowanie natychmiast.",
       enableConfirm: "Włącz śnienie",
       disableTitle: "Wyłącz śnienie dla wszystkich agentów",
       disableDetail:
-        "Nocny proces śnienia zostanie zatrzymany dla wszystkich skonfigurowanych agentów, a nie tylko dla tego jednego. Zapisane wcześniej wspomnienia pozostaną, ale żadne nowe nie zostaną przeniesione. Zmiana zostanie zastosowana natychmiast.",
+        "Nocny cykl śnienia zostanie zatrzymany dla każdego skonfigurowanego agenta, nie tylko tego. Już zapisane wspomnienia pozostają; nic nowego nie zostaje przeniesione. Ma to zastosowanie natychmiast.",
       disableConfirm: "Wyłącz śnienie",
       saving: "Zapisywanie…",
       failed: "Nie udało się zastosować zmiany. Sprawdź połączenie i spróbuj ponownie.",
@@ -3891,6 +4069,11 @@ export const pl: TranslationMap = {
     },
     outputTokens: "{count} tokenów wyjściowych",
     archivedSessionDisabled: "Przywróć tę sesję, aby wysyłać wiadomości.",
+    sessionRoute: {
+      chooseTitle: "Wybierz sesję",
+      multipleMatches: "Więcej niż jedna sesja pasuje do {shortId}.",
+      additionalMatches: "Pozostają wyniki wyszukiwania. Użyj dłuższego prefiksu identyfikatora.",
+    },
     sessionSharing: {
       menu: "Udostępnianie wątku",
       current: "Widoczność wątku: {visibility}",
@@ -3942,6 +4125,15 @@ export const pl: TranslationMap = {
       oneMessage: "{count} wiadomość",
       messages: "{count} wiadomości",
       activeBranch: "Aktywna gałąź",
+      gatewayPicker: {
+        menuLabel: "Gateway: {gateway}",
+        primaryTag: "podstawowy",
+        setPrimary: "Ustaw jako podstawowy…",
+        openSettings: "Ustawienia Gateway…",
+        connected: "Połączono",
+        unreachable: "Nieosiągalny",
+        unknown: "Nieznany status",
+      },
     },
     board: {
       faceLabel: "Widok wątku",
@@ -4321,6 +4513,8 @@ export const pl: TranslationMap = {
       detail: "Szczegóły",
       close: "Zamknij {panel}",
       drag: "Przeciągnij {panel}",
+      dropOnEmptyLeft: "Przenieś {panel} do pustego lewego paska bocznego",
+      dropOnEmptyRight: "Przenieś {panel} do pustego prawego paska bocznego",
       resize: "Zmień rozmiar {panel}",
     },
     thread: {

@@ -41,6 +41,7 @@ export const id: TranslationMap = {
     unselect: "Batalkan pilihan",
     enabled: "Diaktifkan",
     disabled: "Dinonaktifkan",
+    failed: "Gagal",
     none: "tidak ada",
     na: "t/a",
     never: "never",
@@ -241,11 +242,6 @@ export const id: TranslationMap = {
       schemaUnavailable: "Skema tidak tersedia. Gunakan Raw.",
       channelSchemaUnavailable: "Skema konfigurasi channel tidak tersedia.",
       loadingSchema: "Memuat skema konfigurasi…",
-    },
-    health: {
-      title: "Kesehatan saluran",
-      subtitle: "Snapshot status saluran dari gateway.",
-      noSnapshotYet: "Belum ada snapshot.",
     },
     generic: {
       subtitle: "Status dan konfigurasi saluran.",
@@ -594,7 +590,7 @@ export const id: TranslationMap = {
     incognito: "Incognito",
     incognitoDescription: "Simpan thread ini hanya sampai Gateway dimulai ulang",
     draft: "Draf",
-    draftDescription: "Simpan utas ini untuk Anda sendiri hingga Anda memublikasikannya",
+    draftDescription: "Simpan thread ini untuk diri sendiri sampai Anda mempublikasikannya",
     messagePlaceholder: "Apa yang harus dikerjakan sesi ini?",
     readingAttachment: "Membaca lampiran",
     start: "Mulai sesi",
@@ -603,6 +599,11 @@ export const id: TranslationMap = {
     createOutcomeUnknown:
       "Gateway berubah saat sesi ini dimulai. Periksa sesi terbaru sebelum memulai tugas ini lagi.",
     catalogUnavailable: "Target sesi ini tidak tersedia.",
+  },
+  dashboardsPage: {
+    emptyTitle: "Belum ada dashboard",
+    emptyDescription: "Buka thread dan beralih ke face Dashboard untuk menambahkannya di sini.",
+    loadError: "Tidak dapat memuat dashboard: {error}",
   },
   sessionsView: {
     deletePreservedWorktrees:
@@ -725,7 +726,7 @@ export const id: TranslationMap = {
     runErrorTimedOut: "Waktu habis",
     runErrorUnknown: "Kesalahan tidak diketahui",
     attentionRequired: "Sesi memerlukan perhatian",
-    openSession: "Buka utas",
+    openSession: "Buka thread",
     model: "Model",
     provider: "Penyedia",
     runtime: "Runtime",
@@ -984,6 +985,8 @@ export const id: TranslationMap = {
       notCreatedYet: "Not Created Yet",
       updatedUnknown: "Updated Unknown",
       missingHint: "This file is missing. Saving will create it in the agent workspace.",
+      addFile: "Tambah file…",
+      createHint: "File ini belum ada. Menyimpan akan membuatnya di workspace agen.",
       content: "Content",
       words: "{count} words",
       lines: "lines",
@@ -1837,6 +1840,7 @@ export const id: TranslationMap = {
     skillWorkshop: "Skill Workshop",
     nodes: "Node",
     chat: "Chat",
+    dashboards: "Dashboard",
     custodian: "OpenClaw",
     config: "Konfigurasi",
     profile: "Profil",
@@ -1844,6 +1848,7 @@ export const id: TranslationMap = {
     appearance: "Tampilan",
     automation: "Otomatisasi",
     mcp: "MCP",
+    memory: "Memori",
     infrastructure: "Infrastruktur",
     labs: "Labs",
     about: "Tentang",
@@ -1873,6 +1878,7 @@ export const id: TranslationMap = {
     skillWorkshop: "Tinjau, sempurnakan, dan terapkan proposal sebelum menjadi Skills aktif.",
     nodes: "Perangkat yang dipasangkan dan perintah.",
     chat: "Chat Gateway untuk intervensi cepat.",
+    dashboards: "Thread yang terbuka pada face dashboard-nya.",
     custodian: "Penyiapan dan perawatan sistem.",
     config: "Edit openclaw.json.",
     profile: "Statistik, rentetan, dan kehidupan agen Anda di reef.",
@@ -1880,6 +1886,7 @@ export const id: TranslationMap = {
     appearance: "Tema, UI, dan pengaturan wizard penyiapan.",
     automation: "Perintah, hook, cron, dan plugin.",
     mcp: "Server MCP, autentikasi, alat, dan diagnostik.",
+    memory: "Mesin memori, backend, pencarian, dan dreaming.",
     infrastructure: "Pengaturan Gateway, web, browser, dan media.",
     labs: "Kemampuan agen dan alat eksperimental.",
     about: "Control UI dan Gateway yang terhubung membangun identitas.",
@@ -2148,6 +2155,156 @@ export const id: TranslationMap = {
     tlsVerifyOff: "verifikasi TLS mati",
     mtls: "mTLS",
   },
+  memoryPage: {
+    tablistLabel: "Bagian memori",
+    tabs: {
+      overview: "Ikhtisar",
+      search: "Pencarian",
+      dreaming: "Dreaming",
+    },
+    engine: {
+      title: "Mesin",
+      description:
+        "Tepat satu plugin memori memiliki slot memori. Memilih mesin akan mengaktifkannya dan menonaktifkan yang lain.",
+      rowTitle: "Mesin memori",
+      off: "Nonaktif",
+      autoHint:
+        "Tidak ada mesin yang disematkan dalam config, jadi slot kembali ke pemilik default-nya.",
+      explicitHint: "Mesin ini disematkan dalam config di bawah plugins.slots.memory.",
+      offHint: "Memori dimatikan dalam config: plugins.slots.memory disetel ke none.",
+      catalogUnavailable: "Hubungkan ke gateway untuk mengubah mesin memori.",
+      changeFailed: "Tidak dapat mengubah mesin memori",
+      disabledTitle: "Mesin ini dinonaktifkan",
+      disabledHint:
+        "Slot memori menunjuk ke plugin ini, tetapi plugin itu sendiri dinonaktifkan, sehingga memori tidak berjalan.",
+      enable: "Aktifkan",
+    },
+    backend: {
+      title: "Backend",
+      description: "Cara memori disimpan dan diambil untuk mesin yang dipilih.",
+      rowTitle: "Backend pengambilan",
+      builtin: "Bawaan",
+      qmd: "QMD",
+      builtinHint: "File memori diindeks dan dicari oleh OpenClaw sendiri.",
+      qmdHint: "Pengambilan didelegasikan ke QMD. Pengaturannya muncul di bawah.",
+    },
+    addons: {
+      title: "Add-on",
+      description:
+        "Plugin ini berlapis di atas mesin alih-alih bersaing untuk slot, sehingga kombinasi apa pun dapat berjalan sekaligus.",
+      activeMemory: {
+        title: "Memori aktif",
+      },
+      memoryWiki: {
+        title: "Wiki memori",
+      },
+      stateUnknown: "Tidak diketahui",
+      manage: "Aktifkan atau nonaktifkan add-on",
+      manageLink: "Buka Plugins",
+    },
+    import: {
+      title: "Impor",
+      description: "Bawa memori yang ada dari asisten lain ke ruang kerja agen.",
+      link: "Buka Impor Memori",
+    },
+    search: {
+      intro:
+        "Default penyematan dan pengambilan yang dibagikan oleh setiap agen yang tidak memiliki penggantian memori.",
+    },
+    dreaming: {
+      intro:
+        "Dreaming berjalan sebagai satu cron job terkelola di seluruh ruang kerja agen, sehingga pengaturan ini bersifat global. Pengaturan ini dimiliki oleh plugin {plugin}.",
+      schedule: {
+        title: "Jadwal",
+        description: "Kapan sapuan penuh berjalan dan model mana yang menarasikannya.",
+      },
+      frequency: {
+        label: "Frekuensi dreaming",
+        help: "Irama cron untuk sapuan dreaming penuh (light, REM, lalu deep). Biarkan kosong untuk default plugin.",
+        placeholder: "0 3 * * *",
+      },
+      timezone: {
+        label: "Zona waktu",
+        help: "Zona waktu IANA yang digunakan untuk menafsirkan irama cron.",
+        placeholder: "Europe/Vienna",
+      },
+      model: {
+        label: "Model dreaming",
+        help: "Penggantian provider/model untuk narasi diary dreaming. Membutuhkan penggantian model subagent yang diizinkan.",
+        placeholder: "anthropic/claude-sonnet-4-6",
+      },
+      verboseLogging: {
+        label: "Logging terperinci",
+        help: "Catat setiap fase dreaming secara terperinci. Berguna saat menyetel ambang batas.",
+      },
+      storage: {
+        title: "Penyimpanan",
+        description: "Tempat memori yang dipromosikan dan laporan dreaming ditulis.",
+        modeLabel: "Mode penyimpanan",
+        modeHelp: "Inline menulis ke dalam file memori; separate menyimpan file laporan khusus.",
+        modes: {
+          inline: "Inline",
+          separate: "Separate",
+          both: "Both",
+        },
+        separateReportsLabel: "Laporan terpisah",
+        separateReportsHelp: "Jaga laporan dreaming tetap di luar file memori utama.",
+      },
+      phases: {
+        light: {
+          title: "Fase light",
+          description: "Proses aktivitas terkini yang hemat untuk menyiapkan kandidat replay.",
+        },
+        deep: {
+          title: "Fase deep",
+          description: "Proses promosi berskor yang menaikkan entri jangka pendek ke memori.",
+        },
+        rem: {
+          title: "Fase REM",
+          description: "Proses pola yang mencari tema berulang di seluruh jendela lookback.",
+        },
+      },
+      phaseFields: {
+        enabled: "Aktif",
+        enabledHelp: "Jalankan fase ini selama sweep.",
+        lookbackDays: "Hari lookback",
+        lookbackDaysHelp:
+          "Seberapa jauh ke belakang fase ini membaca. Kosongkan untuk default plugin.",
+        limit: "Batas",
+        limitHelp: "Entri maksimum yang diproses fase ini per pengoperasian.",
+        dedupeSimilarity: "Kemiripan dedupe",
+        dedupeSimilarityHelp: "Kemiripan di atas mana dua kandidat dianggap duplikat.",
+        minScore: "Skor minimum",
+        minScoreHelp: "Skor promosi yang harus dicapai sebuah entri.",
+        minRecallCount: "Recall minimum",
+        minRecallCountHelp:
+          "Seberapa sering sebuah entri harus di-recall sebelum dapat dipromosikan.",
+        minUniqueQueries: "Kueri unik minimum",
+        minUniqueQueriesHelp: "Berapa banyak kueri berbeda yang harus memunculkan entri.",
+        recencyHalfLifeDays: "Waktu paruh recency (hari)",
+        recencyHalfLifeDaysHelp: "Seberapa cepat sinyal recall yang lebih lama kehilangan bobot.",
+        maxAgeDays: "Usia maksimum (hari)",
+        maxAgeDaysHelp: "Abaikan entri jangka pendek yang lebih tua dari ini.",
+        maxPromotedSnippetTokens: "Token snippet terpromosi maksimum",
+        maxPromotedSnippetTokensHelp:
+          "Anggaran token untuk setiap snippet terpromosi. Provenans tetap terlampir.",
+        minPatternStrength: "Kekuatan pola minimum",
+        minPatternStrengthHelp: "Kekuatan yang harus dicapai pola berulang agar dilaporkan.",
+      },
+      agentScope: {
+        title: "Tampilan agen",
+        description:
+          "Pengaturan di atas bersifat global. Diari mimpi, jumlah jangka pendek, dan tindakan pemeliharaan di bawah ini milik satu agen.",
+        rowTitle: "Agen",
+      },
+      unsupported: {
+        title: "Pengaturan dreaming",
+        rowTitle: "Tidak tersedia untuk engine ini",
+        description:
+          "Plugin {plugin} memiliki slot memori dan skema konfigurasinya tidak memiliki bagian dreaming, sehingga pengaturan ini tidak dapat disimpan. Alihkan engine di tab Overview untuk mengeditnya.",
+      },
+    },
+  },
   sessionsPage: {
     hubTablistLabel: "Bagian thread",
   },
@@ -2307,6 +2464,21 @@ export const id: TranslationMap = {
       description: "Biarkan Code Mode mengorkestrasi grup subagen secara paralel.",
       empty: "Tidak ada swarm aktif.",
       defaultPhase: "Tanpa Fase",
+    },
+    toolSearch: {
+      title: "Pencarian Alat",
+      description:
+        "Pertahankan direktori alat yang terbatas tetap terlihat dan tunda sisanya di balik pencarian, sehingga katalog MCP dan plugin yang besar tidak lagi memenuhi prompt.",
+    },
+    localModelLean: {
+      title: "Alat ringkas untuk model lokal",
+      description:
+        "Hilangkan alat default yang berat yang ditangani buruk oleh model lokal yang lebih kecil, menyisakan set yang lebih pendek yang dapat mereka gunakan dengan andal.",
+    },
+    auditMessages: {
+      title: "Metadata audit pesan",
+      description:
+        "Rekam metadata tanpa konten untuk percakapan langsung dalam ledger audit. Konten pesan tidak pernah disimpan.",
     },
   },
   aboutPage: {
@@ -3103,6 +3275,7 @@ export const id: TranslationMap = {
     },
   },
   attention: {
+    cronErrorUnknown: "Kesalahan tidak diketahui",
     cronFailed: "{count} tugas cron gagal",
     cronOverdue: "{count} tugas cron terlambat",
     modelAuthExpired: "Autentikasi model telah kedaluwarsa: {providers}",
@@ -3199,14 +3372,14 @@ export const id: TranslationMap = {
       off: "Dreaming Nonaktif",
     },
     toggleConfirmation: {
-      subtitle: "Dreaming adalah pengaturan global; pengaturan ini tidak terbatas pada agen ini.",
+      subtitle: "Dreaming adalah pengaturan global; tidak dicakupkan ke agen ini.",
       enableTitle: "Aktifkan Dreaming untuk Semua Agen",
       enableDetail:
-        "Proses dreaming setiap malam akan dijalankan di seluruh ruang kerja agen yang dikonfigurasi, memindahkan ingatan jangka pendek ke memori jangka panjang. Perubahan ini langsung berlaku.",
+        "Sapuan dreaming malam hari akan berjalan di setiap ruang kerja agen yang dikonfigurasi, mempromosikan recall jangka pendek ke memori jangka panjang. Ini berlaku segera.",
       enableConfirm: "Aktifkan Dreaming",
       disableTitle: "Nonaktifkan Dreaming untuk Semua Agen",
       disableDetail:
-        "Proses dreaming setiap malam akan dihentikan untuk setiap agen yang dikonfigurasi, bukan hanya agen ini. Memori yang sudah tersimpan akan tetap ada; tidak ada lagi yang dipindahkan. Perubahan ini langsung berlaku.",
+        "Sapuan dreaming malam hari akan berhenti untuk setiap agen yang dikonfigurasi, bukan hanya yang ini. Memori yang sudah ditulis tetap ada; tidak ada yang baru dipromosikan. Ini berlaku segera.",
       disableConfirm: "Nonaktifkan Dreaming",
       saving: "Menyimpan…",
       failed: "Tidak dapat menerapkan perubahan. Periksa koneksi Anda dan coba lagi.",
@@ -3858,6 +4031,11 @@ export const id: TranslationMap = {
     },
     outputTokens: "{count} token output",
     archivedSessionDisabled: "Pulihkan sesi ini untuk mengirim pesan.",
+    sessionRoute: {
+      chooseTitle: "Pilih sesi",
+      multipleMatches: "Lebih dari satu sesi cocok dengan {shortId}.",
+      additionalMatches: "Masih ada hasil pencarian. Gunakan awalan id yang lebih panjang.",
+    },
     sessionSharing: {
       menu: "Berbagi thread",
       current: "Visibilitas thread: {visibility}",
@@ -3909,6 +4087,15 @@ export const id: TranslationMap = {
       oneMessage: "{count} pesan",
       messages: "{count} pesan",
       activeBranch: "Cabang aktif",
+      gatewayPicker: {
+        menuLabel: "Gateway: {gateway}",
+        primaryTag: "utama",
+        setPrimary: "Jadikan utama…",
+        openSettings: "Pengaturan Gateway…",
+        connected: "Terhubung",
+        unreachable: "Tidak terjangkau",
+        unknown: "Status tidak diketahui",
+      },
     },
     board: {
       faceLabel: "Muka thread",
@@ -4287,6 +4474,8 @@ export const id: TranslationMap = {
       detail: "Detail",
       close: "Tutup {panel}",
       drag: "Seret {panel}",
+      dropOnEmptyLeft: "Pindahkan {panel} ke sidebar kiri yang kosong",
+      dropOnEmptyRight: "Pindahkan {panel} ke sidebar kanan yang kosong",
       resize: "Ubah ukuran {panel}",
     },
     thread: {

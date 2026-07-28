@@ -6,6 +6,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { createProcessor } from "@mdx-js/mdx";
+import MarkdownIt from "markdown-it";
 import { resolveClawHubRepoPath, syncClawHubDocsTree } from "./docs-sync-publish.mjs";
 import { resolveNpmRunner } from "./npm-runner.mjs";
 
@@ -13,6 +15,10 @@ const ROOT = process.cwd();
 const DOCS_DIR = path.join(ROOT, "docs");
 const DOCS_JSON_PATH = path.join(DOCS_DIR, "docs.json");
 const ROOT_MARKDOWN_FILES = ["README.md", "CONTRIBUTING.md", "SECURITY.md"];
+const MDX_PROCESSOR = createProcessor({ format: "mdx" });
+const MARKDOWN_PARSER = new MarkdownIt({ html: false });
+const HTML_MARKDOWN_PARSER = new MarkdownIt({ html: true });
+const VERBATIM_MDX_ELEMENTS = new Set(["code", "pre", "script", "style", "textarea"]);
 const MINTLIFY_CLI_VERSION = "4.2.715";
 const MINTLIFY_BROKEN_LINKS_ARGS = [
   "exec",
@@ -24,8 +30,6 @@ const MINTLIFY_BROKEN_LINKS_ARGS = [
   "--check-anchors",
 ];
 const NODE_25_UNSUPPORTED_BY_MINTLIFY = 25;
-const HTML_WRAPPER_TAG_LINE_RE =
-  /^([\t ]*)<(\/?)([A-Za-z][A-Za-z0-9.:_-]*)(?:[\t ][^<>\r\n]*?)?(\/?)>[\t ]*\r?$/u;
 
 if (!fs.existsSync(DOCS_DIR) || !fs.statSync(DOCS_DIR).isDirectory()) {
   console.error("docs:check-links: missing docs directory; run from repo root.");
@@ -56,63 +60,167 @@ function walk(dir) {
   return out;
 }
 
+/** @param {string} value */
+function escapeHtmlAttribute(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 /**
- * Makes Markdown nested in standalone HTML/MDX wrapper tags visible to
- * CommonMark link extractors while preserving source line numbers.
+ * Projects parsed Markdown links onto their source lines. MDX parsing owns the
+ * normal path; markdown-it is a tolerant fallback for legacy malformed pages.
  *
  * @param {string} raw
  */
 function projectExternalLinkMarkdown(raw) {
-  /** @type {{name: string, contentIndent: number}[]} */
-  const wrapperStack = [];
-  /** @type {{marker: string, length: number} | undefined} */
-  let codeFence;
-  let wrapperTagLines = 0;
-  const lines = raw.split("\n");
-
-  const deindent = (line) => {
-    const contentIndent = wrapperStack.at(-1)?.contentIndent ?? 0;
-    let offset = 0;
-    while (offset < contentIndent && (line[offset] === " " || line[offset] === "\t")) {
-      offset += 1;
+  // Lychee also receives every original source file for HTML attributes and bare URLs.
+  // This line-stable companion contains only parsed Markdown links hidden by MDX blocks.
+  const projected = raw.split("\n").map((line) => (line.endsWith("\r") ? "\r" : ""));
+  let projectedLinks = 0;
+  const appendLink = (line, url) => {
+    if (!Number.isInteger(line) || line < 1 || line > projected.length || !url) {
+      return;
     }
-    return line.slice(offset);
+    const index = line - 1;
+    const suffix = projected[index].endsWith("\r") ? "\r" : "";
+    const existing = suffix ? projected[index].slice(0, -1) : projected[index];
+    const separator = existing ? " " : "";
+    projected[index] =
+      `${existing}${separator}<a href="${escapeHtmlAttribute(url)}">link</a>${suffix}`;
+    projectedLinks += 1;
   };
 
-  const projected = lines.map((line) => {
-    const result = deindent(line);
-    if (codeFence) {
-      const closingFence = result.match(/^[\t ]*(`{3,}|~{3,})[\t ]*\r?$/u)?.[1];
-      if (closingFence?.[0] === codeFence.marker && closingFence.length >= codeFence.length) {
-        codeFence = undefined;
+  try {
+    const tree = MDX_PROCESSOR.parse(raw);
+    const definitions = new Map();
+    const collectDefinitions = (node) => {
+      if (
+        node.type === "definition" &&
+        node.identifier &&
+        node.url &&
+        !definitions.has(node.identifier)
+      ) {
+        definitions.set(node.identifier, node.url);
       }
-      return result;
-    }
+      for (const child of node.children ?? []) {
+        collectDefinitions(child);
+      }
+    };
+    collectDefinitions(tree);
 
-    const openingFence = result.match(/^[\t ]*(`{3,}|~{3,})/u)?.[1];
-    if (openingFence) {
-      codeFence = { marker: openingFence[0], length: openingFence.length };
-      return result;
-    }
-
-    const tag = line.match(HTML_WRAPPER_TAG_LINE_RE);
-    if (tag) {
-      wrapperTagLines += 1;
-      const [, indent, closing, name, selfClosing] = tag;
-      if (closing) {
-        const openingIndex = wrapperStack.findLastIndex((opening) => opening.name === name);
-        if (openingIndex >= 0) {
-          wrapperStack.length = openingIndex;
+    const collectLinks = (node, verbatim = false) => {
+      const nextVerbatim =
+        verbatim ||
+        ((node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") &&
+          VERBATIM_MDX_ELEMENTS.has(node.name));
+      if (!nextVerbatim) {
+        if ((node.type === "link" || node.type === "image") && node.url) {
+          appendLink(node.position?.start.line, node.url);
+        } else if (
+          (node.type === "linkReference" || node.type === "imageReference") &&
+          node.identifier
+        ) {
+          appendLink(node.position?.start.line, definitions.get(node.identifier));
         }
-      } else if (!selfClosing) {
-        wrapperStack.push({ name, contentIndent: indent.length + 2 });
       }
-      return line.endsWith("\r") ? "\r" : "";
+      for (const child of node.children ?? []) {
+        collectLinks(child, nextVerbatim);
+      }
+    };
+    collectLinks(tree);
+  } catch {
+    const rawLines = raw.split("\n");
+    const inlineVerbatimLinks = new Map();
+    const transparentEnv = {};
+    const transparentTokens = MARKDOWN_PARSER.parse(raw, transparentEnv);
+    const fallbackCodeLines = new Set();
+    for (const token of transparentTokens) {
+      if ((token.type === "fence" || token.type === "code_block") && token.map) {
+        for (let line = token.map[0]; line < token.map[1]; line += 1) {
+          fallbackCodeLines.add(line);
+        }
+      }
     }
-    return result;
-  });
+    const childUrl = (child) =>
+      child.type === "link_open"
+        ? child.attrGet("href")
+        : child.type === "image"
+          ? child.attrGet("src")
+          : undefined;
+    const sourceLineForUrl = (token, url) => {
+      const escapedUrl = url.replaceAll("&", "&amp;");
+      for (let line = token.map[0]; line < token.map[1]; line += 1) {
+        if (rawLines[line]?.includes(url) || rawLines[line]?.includes(escapedUrl)) {
+          return line;
+        }
+        for (const inlineToken of MARKDOWN_PARSER.parseInline(
+          rawLines[line] ?? "",
+          transparentEnv,
+        )) {
+          if ((inlineToken.children ?? []).some((child) => childUrl(child) === url)) {
+            return line;
+          }
+        }
+      }
+      return token.map[0];
+    };
+    const inlineVerbatimStack = [];
+    for (const [line, rawLine] of rawLines.entries()) {
+      if (inlineVerbatimStack.length === 0 && fallbackCodeLines.has(line)) {
+        continue;
+      }
+      for (const token of HTML_MARKDOWN_PARSER.parseInline(rawLine, transparentEnv)) {
+        for (const child of token.children ?? []) {
+          if (child.type === "html_inline") {
+            const closingTag = child.content.match(/^<\/([a-z][A-Za-z0-9.:_-]*)[\t ]*>$/u)?.[1];
+            if (closingTag) {
+              const openingIndex = inlineVerbatimStack.lastIndexOf(closingTag);
+              if (openingIndex >= 0) {
+                inlineVerbatimStack.length = openingIndex;
+              }
+              continue;
+            }
+            const openingTag = child.content.match(
+              /^<([a-z][A-Za-z0-9.:_-]*)(?:[\t ][^<>]*?)?(\/?)>$/u,
+            );
+            if (openingTag && !openingTag[2] && VERBATIM_MDX_ELEMENTS.has(openingTag[1])) {
+              inlineVerbatimStack.push(openingTag[1]);
+            }
+            continue;
+          }
+          const url = childUrl(child);
+          if (inlineVerbatimStack.length > 0 && url) {
+            const key = `${line}\0${url}`;
+            inlineVerbatimLinks.set(key, (inlineVerbatimLinks.get(key) ?? 0) + 1);
+          }
+        }
+      }
+    }
+    for (const token of transparentTokens) {
+      if (token.type !== "inline" || !token.map) {
+        continue;
+      }
+      for (const child of token.children ?? []) {
+        const url = childUrl(child);
+        if (!url) {
+          continue;
+        }
+        const sourceLine = sourceLineForUrl(token, url);
+        const key = `${sourceLine}\0${url}`;
+        const hiddenOccurrences = inlineVerbatimLinks.get(key) ?? 0;
+        if (hiddenOccurrences > 0) {
+          inlineVerbatimLinks.set(key, hiddenOccurrences - 1);
+          continue;
+        }
+        appendLink(sourceLine + 1, url);
+      }
+    }
+  }
 
-  return { text: projected.join("\n"), wrapperTagLines };
+  return { text: projected.join("\n"), projectedLinks };
 }
 
 /**
@@ -143,17 +251,17 @@ export function prepareExternalLinkAuditTree(repoRoot, outputDir) {
     ...walk(docsRoot).filter((filePath) => /\.mdx?$/iu.test(filePath)),
     ...ROOT_MARKDOWN_FILES.map((filename) => path.join(root, filename)),
   ];
-  let wrapperTagLines = 0;
+  let projectedLinks = 0;
   for (const sourcePath of sourcePaths) {
     const targetPath = path.join(outputRoot, path.relative(root, sourcePath));
     const raw = fs.readFileSync(sourcePath, "utf8");
     const projected = projectExternalLinkMarkdown(raw);
-    wrapperTagLines += projected.wrapperTagLines;
+    projectedLinks += projected.projectedLinks;
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.writeFileSync(targetPath, projected.text, "utf8");
   }
 
-  return { files: sourcePaths.length, wrapperTagLines };
+  return { files: sourcePaths.length, projectedLinks };
 }
 
 /** @param {string} p */
@@ -698,7 +806,7 @@ export function runDocsLinkAuditCli(options = {}) {
     }
     const result = prepareExternalLinkAuditTree(ROOT, path.resolve(ROOT, args[1]));
     console.log(`prepared_external_link_files=${result.files}`);
-    console.log(`removed_wrapper_tag_lines=${result.wrapperTagLines}`);
+    console.log(`projected_markdown_links=${result.projectedLinks}`);
     return 0;
   }
 

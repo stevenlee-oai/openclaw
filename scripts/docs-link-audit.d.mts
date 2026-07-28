@@ -57,7 +57,7 @@ export function prepareExternalLinkAuditTree(
   outputDir: string,
 ): {
   files: number;
-  wrapperTagLines: number;
+  projectedLinks: number;
 };
 
 export function prepareMirroredDocsDir(

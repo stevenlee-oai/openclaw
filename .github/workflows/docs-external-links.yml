@@ -22,6 +22,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          install-deps: "false"
+
+      - name: Install link audit dependencies
+        run: pnpm install --filter . --frozen-lockfile --ignore-scripts
+
       - name: Prepare MDX link audit input
         run: >-
           node scripts/docs-link-audit.mjs

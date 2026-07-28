@@ -83,9 +83,9 @@ export function createPluginToolsMcpHandlers(tools: AnyAgentTool[]) {
       })),
     }),
     callTool: async (params: CallPluginToolParams, signal?: AbortSignal) => {
-      // Pre-rename stdio MCP clients still call the scheduler tool as "cron";
-      // resolve legacy names to the published canonical tool without
-      // re-advertising them in listTools. Remove with the RFC 0026 alias window.
+      // "cron" is a permanently accepted inbound alias for the scheduler tool
+      // (owner decision, RFC 0026; same contract as bash -> exec). Resolve it to
+      // the published canonical tool without re-advertising it in listTools.
       const entry =
         toolMap.get(params.name) ??
         (isAutomationsToolName(params.name)

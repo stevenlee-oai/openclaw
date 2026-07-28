@@ -6,9 +6,10 @@
 export const AUTOMATIONS_TOOL_NAME = "automations";
 
 /**
- * Pre-rename tool name still present in persisted allow/deny config and old
- * transcripts. Policy matching aliases it to the canonical id (RFC 0026);
- * removing it breaks configs written before the rename.
+ * "cron" is a permanently accepted alias for the scheduler tool in persisted
+ * allow/deny config, old transcripts, and inbound calls (owner decision,
+ * RFC 0026; same contract as bash -> exec). Not migration debt: no doctor
+ * rewrite, no removal window.
  */
 export const LEGACY_AUTOMATIONS_TOOL_NAMES = ["cron"] as const;
 

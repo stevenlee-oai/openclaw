@@ -19,7 +19,7 @@ type ToolProfilePolicy = {
 const TOOL_NAME_ALIASES: Record<string, string> = {
   bash: "exec",
   "apply-patch": "apply_patch",
-  // Pre-rename scheduler tool name in persisted allow/deny lists (RFC 0026).
+  // Permanent scheduler-tool alias (owner decision, RFC 0026), like bash -> exec.
   cron: "automations",
 };
 

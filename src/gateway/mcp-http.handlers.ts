@@ -100,9 +100,9 @@ export async function handleMcpJsonRpc(params: {
     case "tools/call": {
       const requestedToolName =
         typeof methodParams?.name === "string" ? methodParams.name.trim() : "";
-      // Pre-rename MCP clients still call the scheduler tool as "cron"; resolve
-      // legacy names to the published canonical tool without re-advertising the
-      // old name in tools/list. Remove with the RFC 0026 legacy-alias window.
+      // "cron" is a permanently accepted inbound alias for the scheduler tool
+      // (owner decision, RFC 0026; same contract as bash -> exec). Resolve it to
+      // the published canonical tool without re-advertising it in tools/list.
       const toolName =
         !params.toolSchema.some((tool) => tool.name === requestedToolName) &&
         isAutomationsToolName(requestedToolName)

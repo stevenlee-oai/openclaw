@@ -178,9 +178,9 @@ export async function invokeGatewayTool(params: {
     params.conversationReadOrigin,
   );
   const requestedToolName = normalizeOptionalString(params.input.name ?? params.input.tool) ?? "";
-  // Pre-rename clients still invoke the scheduler tool as "cron"; canonicalize
-  // legacy names before core-id checks and exact-name dispatch below. Remove
-  // with the RFC 0026 legacy-alias window.
+  // "cron" is a permanently accepted inbound alias for the scheduler tool
+  // (owner decision, RFC 0026; same contract as bash -> exec). Canonicalize
+  // before core-id checks and exact-name dispatch below.
   const toolName = isAutomationsToolName(requestedToolName)
     ? AUTOMATIONS_TOOL_NAME
     : requestedToolName;

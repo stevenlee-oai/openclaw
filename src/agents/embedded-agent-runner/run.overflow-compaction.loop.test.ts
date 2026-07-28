@@ -82,8 +82,7 @@ describe("overflow compaction in run loop", () => {
   beforeAll(async () => {
     ({ runEmbeddedAgent } = await loadRunOverflowCompactionHarness());
     await warmRunOverflowCompactionHarness(runEmbeddedAgent);
-    // Cold module-graph setup exceeds the generic hook limit on 2-vCPU hosted runners.
-  }, 600_000);
+  });
 
   beforeEach(() => {
     resetRunOverflowCompactionHarnessMocks();

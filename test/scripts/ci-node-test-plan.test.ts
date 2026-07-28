@@ -995,47 +995,12 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
         shardName: "agentic-agents-core-isolated",
       },
       {
-        checkName: "checks-node-agentic-agents-embedded-overflow",
+        checkName: "checks-node-agentic-agents-embedded",
         configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: [
-          "src/agents/embedded-agent-runner/run.overflow-compaction.loop.test.ts",
-          "src/agents/embedded-agent-runner/run.overflow-compaction.test.ts",
-        ],
+        env: { OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000" },
         requiresDist: false,
         runner: DEFAULT_NODE_TEST_RUNNER,
-        shardName: "agentic-agents-embedded-overflow",
-      },
-      {
-        checkName: "checks-node-agentic-agents-embedded-1",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: agentShards[13]?.includePatterns,
-        requiresDist: false,
-        runner: DEFAULT_NODE_TEST_RUNNER,
-        shardName: "agentic-agents-embedded-1",
-      },
-      {
-        checkName: "checks-node-agentic-agents-embedded-2",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: agentShards[14]?.includePatterns,
-        requiresDist: false,
-        runner: DEFAULT_NODE_TEST_RUNNER,
-        shardName: "agentic-agents-embedded-2",
-      },
-      {
-        checkName: "checks-node-agentic-agents-embedded-3",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: agentShards[15]?.includePatterns,
-        requiresDist: false,
-        runner: DEFAULT_NODE_TEST_RUNNER,
-        shardName: "agentic-agents-embedded-3",
-      },
-      {
-        checkName: "checks-node-agentic-agents-embedded-4",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: agentShards[16]?.includePatterns,
-        requiresDist: false,
-        runner: DEFAULT_NODE_TEST_RUNNER,
-        shardName: "agentic-agents-embedded-4",
+        shardName: "agentic-agents-embedded",
       },
       {
         checkName: "checks-node-agentic-agents-support",
@@ -1052,15 +1017,6 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
         shardName: "agentic-agents-tools",
       },
     ]);
-    const embeddedShardFiles = agentShards
-      .filter((shard) => shard.shardName.startsWith("agentic-agents-embedded-"))
-      .flatMap((shard) => shard.includePatterns ?? [])
-      .toSorted((a, b) => a.localeCompare(b));
-    const expectedEmbeddedShardFiles = listTestFiles("src/agents/embedded-agent-runner").toSorted(
-      (a, b) => a.localeCompare(b),
-    );
-    expect(embeddedShardFiles).toEqual(expectedEmbeddedShardFiles);
-    expect(new Set(embeddedShardFiles).size).toBe(embeddedShardFiles.length);
     expect(pluginSdkShard).toEqual({
       checkName: "checks-node-agentic-plugin-sdk",
       shardName: "agentic-plugin-sdk",

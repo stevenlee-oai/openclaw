@@ -48,7 +48,7 @@ jobs:
           // Warm whole configs for the striped unit-fast graph plus the import-
           // bound graphs that remained cold in measured protected-cache readers.
           const additionalShardNames = new Set([
-            "agentic-agents-embedded-1",
+            "agentic-agents-embedded",
             "agentic-gateway-methods",
             "auto-reply-reply-commands-3",
           ]);

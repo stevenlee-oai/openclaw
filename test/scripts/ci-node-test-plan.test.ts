@@ -997,7 +997,6 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
       {
         checkName: "checks-node-agentic-agents-embedded-overflow",
         configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        env: { OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000" },
         includePatterns: ["src/agents/embedded-agent-runner/run.overflow-compaction.test.ts"],
         requiresDist: false,
         runner: DEFAULT_NODE_TEST_RUNNER,

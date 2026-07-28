@@ -589,7 +589,6 @@ function createAgentsEmbeddedSplitShards() {
   return [
     {
       configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-      env: { OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000" },
       includePatterns: [AGENTS_EMBEDDED_WHALE_TEST],
       requiresDist: false,
       shardName: "agentic-agents-embedded-overflow",

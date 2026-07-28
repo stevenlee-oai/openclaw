@@ -47,6 +47,9 @@ const COMPACT_TOOLING_NODE_TEST_GROUPS = 4;
 const COMPACT_WHOLE_NODE_TEST_TIMEOUT_MINUTES = 120;
 const AUTO_REPLY_COMMANDS_STRIPES = 3;
 const AGENTS_CORE_RUNNER_CLI_STRIPES = 3;
+const AGENTS_EMBEDDED_STRIPES = 4;
+const AGENTS_EMBEDDED_WHALE_TEST =
+  "src/agents/embedded-agent-runner/run.overflow-compaction.test.ts";
 const UNIT_FAST_NODE_TEST_STRIPES = 2;
 // Advisory runtime estimates (seconds) per split shard: [shard:*] begin->end
 // wall clock across seven green Blacksmith compact PR runs after the
@@ -71,7 +74,11 @@ const COMPACT_GROUP_SECONDS_HINTS = new Map([
   ["agentic-agents-core-runtime", 79],
   ["agentic-agents-core-subagents", 32],
   ["agentic-agents-core-tools", 52],
-  ["agentic-agents-embedded", 57],
+  ["agentic-agents-embedded-1", 60],
+  ["agentic-agents-embedded-2", 60],
+  ["agentic-agents-embedded-3", 60],
+  ["agentic-agents-embedded-4", 60],
+  ["agentic-agents-embedded-overflow", 300],
   ["agentic-agents-support", 105],
   ["agentic-agents-tools", 42],
   ["agentic-cli", 72],
@@ -244,7 +251,11 @@ const KEEP_LARGE_NODE_TEST_RUNNER = new Set([
   "agentic-agents-core-models",
   "agentic-agents-core-runtime",
   "agentic-agents-core-subagents",
-  "agentic-agents-embedded",
+  "agentic-agents-embedded-1",
+  "agentic-agents-embedded-2",
+  "agentic-agents-embedded-3",
+  "agentic-agents-embedded-4",
+  "agentic-agents-embedded-overflow",
   "agentic-agents-support",
   "agentic-agents-core-runner-cli-1",
   "agentic-agents-core-runner-cli-2",
@@ -569,6 +580,28 @@ function createAgentCoreSplitShards() {
       requiresDist: false,
       shardName: "agentic-agents-core-isolated",
     },
+  ];
+}
+
+function createAgentsEmbeddedSplitShards() {
+  const files = listTestFiles("src/agents/embedded-agent-runner");
+  const stripedFiles = files.filter((file) => file !== AGENTS_EMBEDDED_WHALE_TEST);
+  return [
+    {
+      configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
+      env: { OPENCLAW_VITEST_NO_OUTPUT_TIMEOUT_MS: "600000" },
+      includePatterns: [AGENTS_EMBEDDED_WHALE_TEST],
+      requiresDist: false,
+      shardName: "agentic-agents-embedded-overflow",
+    },
+    ...createStripedBatches(stripedFiles, AGENTS_EMBEDDED_STRIPES).map(
+      (includePatterns, index) => ({
+        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
+        includePatterns,
+        requiresDist: false,
+        shardName: `agentic-agents-embedded-${index + 1}`,
+      }),
+    ),
   ];
 }
 
@@ -1180,11 +1213,7 @@ const SPLIT_NODE_SHARDS = new Map([
       },
       ...createAgenticCommandSplitShards(),
       ...createAgentCoreSplitShards(),
-      {
-        shardName: "agentic-agents-embedded",
-        configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        requiresDist: false,
-      },
+      ...createAgentsEmbeddedSplitShards(),
       {
         shardName: "agentic-agents-support",
         configs: ["test/vitest/vitest.agents-support.config.ts"],

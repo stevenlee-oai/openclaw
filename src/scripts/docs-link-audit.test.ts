@@ -8,6 +8,7 @@ import { cleanupTempDirs, makeTempDir } from "../../test/helpers/temp-dir.js";
 const {
   normalizeRoute,
   prepareAnchorAuditDocsDir,
+  prepareExternalLinkAuditTree,
   prepareMirroredDocsDir,
   resolveRoute,
   runDocsLinkAuditCli,
@@ -24,6 +25,64 @@ describe("docs-link-audit", () => {
       "/plugins/building-plugins",
     );
     expect(normalizeRoute("/plugins/building-plugins?tab=all")).toBe("/plugins/building-plugins");
+  });
+
+  it("prepares every external-link input without exposing code literals", () => {
+    const tempDirs: string[] = [];
+    const fixtureRoot = makeTempDir(tempDirs, "docs-external-link-audit-");
+    const docsRoot = path.join(fixtureRoot, "docs");
+    const source = [
+      "<AccordionGroup>",
+      '  <Accordion title="Reasoning">',
+      "    [reasoning](https://docs.example.test/reasoning)",
+      "    `https://api.example.test/v1`",
+      "    ````markdown",
+      "    ```text",
+      "    <CODE_PLACEHOLDER>",
+      "    ```",
+      "    ~~~",
+      "    [code literal](https://code.example.test)",
+      "    ~~~",
+      "    ````",
+      "  </Accordion>",
+      "</AccordionGroup>",
+      "<PROVIDER>_API_KEY=...",
+      "",
+    ].join("\n");
+    fs.mkdirSync(path.join(docsRoot, "providers"), { recursive: true });
+    fs.writeFileSync(path.join(docsRoot, "providers", "example.md"), source, "utf8");
+    for (const filename of ["README.md", "CONTRIBUTING.md", "SECURITY.md"]) {
+      fs.writeFileSync(
+        path.join(fixtureRoot, filename),
+        `<div>\n  [${filename}](https://root.test)\n</div>\n`,
+      );
+    }
+
+    try {
+      const outputRoot = path.join(fixtureRoot, ".audit");
+      expect(prepareExternalLinkAuditTree(fixtureRoot, outputRoot)).toEqual({
+        files: 4,
+        wrapperTagLines: 10,
+      });
+      const prepared = fs.readFileSync(
+        path.join(outputRoot, "docs", "providers", "example.md"),
+        "utf8",
+      );
+      expect(prepared.split("\n")).toHaveLength(source.split("\n").length);
+      expect(prepared).toContain("\n[reasoning](https://docs.example.test/reasoning)\n");
+      expect(prepared).toContain("\n`https://api.example.test/v1`\n");
+      expect(prepared).toContain(
+        "\n````markdown\n```text\n<CODE_PLACEHOLDER>\n```\n~~~\n[code literal](https://code.example.test)\n~~~\n````\n",
+      );
+      expect(prepared).toContain("<PROVIDER>_API_KEY=...");
+      for (const filename of ["README.md", "CONTRIBUTING.md", "SECURITY.md"]) {
+        expect(fs.readFileSync(path.join(outputRoot, filename), "utf8")).toContain(
+          `\n[${filename}](https://root.test)\n`,
+        );
+      }
+    } finally {
+      cleanupTempDirs(tempDirs);
+    }
   });
 
   it("resolves redirects that land on anchored sections", () => {

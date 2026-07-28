@@ -12,6 +12,7 @@ import { resolveNpmRunner } from "./npm-runner.mjs";
 const ROOT = process.cwd();
 const DOCS_DIR = path.join(ROOT, "docs");
 const DOCS_JSON_PATH = path.join(DOCS_DIR, "docs.json");
+const ROOT_MARKDOWN_FILES = ["README.md", "CONTRIBUTING.md", "SECURITY.md"];
 const MINTLIFY_CLI_VERSION = "4.2.715";
 const MINTLIFY_BROKEN_LINKS_ARGS = [
   "exec",
@@ -23,6 +24,8 @@ const MINTLIFY_BROKEN_LINKS_ARGS = [
   "--check-anchors",
 ];
 const NODE_25_UNSUPPORTED_BY_MINTLIFY = 25;
+const HTML_WRAPPER_TAG_LINE_RE =
+  /^([\t ]*)<(\/?)([A-Za-z][A-Za-z0-9.:_-]*)(?:[\t ][^<>\r\n]*?)?(\/?)>[\t ]*\r?$/u;
 
 if (!fs.existsSync(DOCS_DIR) || !fs.statSync(DOCS_DIR).isDirectory()) {
   console.error("docs:check-links: missing docs directory; run from repo root.");
@@ -51,6 +54,106 @@ function walk(dir) {
     }
   }
   return out;
+}
+
+/**
+ * Makes Markdown nested in standalone HTML/MDX wrapper tags visible to
+ * CommonMark link extractors while preserving source line numbers.
+ *
+ * @param {string} raw
+ */
+function projectExternalLinkMarkdown(raw) {
+  /** @type {{name: string, contentIndent: number}[]} */
+  const wrapperStack = [];
+  /** @type {{marker: string, length: number} | undefined} */
+  let codeFence;
+  let wrapperTagLines = 0;
+  const lines = raw.split("\n");
+
+  const deindent = (line) => {
+    const contentIndent = wrapperStack.at(-1)?.contentIndent ?? 0;
+    let offset = 0;
+    while (offset < contentIndent && (line[offset] === " " || line[offset] === "\t")) {
+      offset += 1;
+    }
+    return line.slice(offset);
+  };
+
+  const projected = lines.map((line) => {
+    const result = deindent(line);
+    if (codeFence) {
+      const closingFence = result.match(/^[\t ]*(`{3,}|~{3,})[\t ]*\r?$/u)?.[1];
+      if (closingFence?.[0] === codeFence.marker && closingFence.length >= codeFence.length) {
+        codeFence = undefined;
+      }
+      return result;
+    }
+
+    const openingFence = result.match(/^[\t ]*(`{3,}|~{3,})/u)?.[1];
+    if (openingFence) {
+      codeFence = { marker: openingFence[0], length: openingFence.length };
+      return result;
+    }
+
+    const tag = line.match(HTML_WRAPPER_TAG_LINE_RE);
+    if (tag) {
+      wrapperTagLines += 1;
+      const [, indent, closing, name, selfClosing] = tag;
+      if (closing) {
+        const openingIndex = wrapperStack.findLastIndex((opening) => opening.name === name);
+        if (openingIndex >= 0) {
+          wrapperStack.length = openingIndex;
+        }
+      } else if (!selfClosing) {
+        wrapperStack.push({ name, contentIndent: indent.length + 2 });
+      }
+      return line.endsWith("\r") ? "\r" : "";
+    }
+    return result;
+  });
+
+  return { text: projected.join("\n"), wrapperTagLines };
+}
+
+/**
+ * Writes a parallel docs tree that exposes Markdown nested in HTML/MDX blocks.
+ * Original inputs still cover tag attributes; projected inputs cover children.
+ *
+ * @param {string} repoRoot
+ * @param {string} outputDir
+ */
+export function prepareExternalLinkAuditTree(repoRoot, outputDir) {
+  const root = path.resolve(repoRoot);
+  const docsRoot = path.join(root, "docs");
+  const outputRoot = path.resolve(outputDir);
+  if (fs.existsSync(outputRoot)) {
+    throw new Error(`external-link audit input already exists: ${outputRoot}`);
+  }
+  const outputFromDocs = path.relative(docsRoot, outputRoot);
+  if (
+    outputFromDocs === "" ||
+    (!outputFromDocs.startsWith(`..${path.sep}`) &&
+      outputFromDocs !== ".." &&
+      !path.isAbsolute(outputFromDocs))
+  ) {
+    throw new Error("external-link audit output must be outside docs");
+  }
+
+  const sourcePaths = [
+    ...walk(docsRoot).filter((filePath) => /\.mdx?$/iu.test(filePath)),
+    ...ROOT_MARKDOWN_FILES.map((filename) => path.join(root, filename)),
+  ];
+  let wrapperTagLines = 0;
+  for (const sourcePath of sourcePaths) {
+    const targetPath = path.join(outputRoot, path.relative(root, sourcePath));
+    const raw = fs.readFileSync(sourcePath, "utf8");
+    const projected = projectExternalLinkMarkdown(raw);
+    wrapperTagLines += projected.wrapperTagLines;
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fs.writeFileSync(targetPath, projected.text, "utf8");
+  }
+
+  return { files: sourcePaths.length, wrapperTagLines };
 }
 
 /** @param {string} p */
@@ -588,6 +691,17 @@ export function auditDocsLinks(options = {}) {
  */
 export function runDocsLinkAuditCli(options = {}) {
   const args = options.args ?? process.argv.slice(2);
+  if (args[0] === "--prepare-external-links") {
+    if (args.length !== 2 || !args[1]) {
+      console.error("usage: docs-link-audit.mjs --prepare-external-links <output-dir>");
+      return 1;
+    }
+    const result = prepareExternalLinkAuditTree(ROOT, path.resolve(ROOT, args[1]));
+    console.log(`prepared_external_link_files=${result.files}`);
+    console.log(`removed_wrapper_tag_lines=${result.wrapperTagLines}`);
+    return 0;
+  }
+
   if (args.includes("--anchors")) {
     const spawnSyncImpl = options.spawnSyncImpl ?? spawnSync;
     const prepareAnchorAuditDocsDirImpl =

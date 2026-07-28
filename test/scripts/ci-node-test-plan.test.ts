@@ -997,7 +997,10 @@ describe("scripts/lib/ci-node-test-plan.mjs", () => {
       {
         checkName: "checks-node-agentic-agents-embedded-overflow",
         configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-        includePatterns: ["src/agents/embedded-agent-runner/run.overflow-compaction.test.ts"],
+        includePatterns: [
+          "src/agents/embedded-agent-runner/run.overflow-compaction.loop.test.ts",
+          "src/agents/embedded-agent-runner/run.overflow-compaction.test.ts",
+        ],
         requiresDist: false,
         runner: DEFAULT_NODE_TEST_RUNNER,
         shardName: "agentic-agents-embedded-overflow",

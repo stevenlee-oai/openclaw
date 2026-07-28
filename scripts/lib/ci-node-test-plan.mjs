@@ -48,8 +48,10 @@ const COMPACT_WHOLE_NODE_TEST_TIMEOUT_MINUTES = 120;
 const AUTO_REPLY_COMMANDS_STRIPES = 3;
 const AGENTS_CORE_RUNNER_CLI_STRIPES = 3;
 const AGENTS_EMBEDDED_STRIPES = 4;
-const AGENTS_EMBEDDED_WHALE_TEST =
-  "src/agents/embedded-agent-runner/run.overflow-compaction.test.ts";
+const AGENTS_EMBEDDED_WHALE_TESTS = [
+  "src/agents/embedded-agent-runner/run.overflow-compaction.loop.test.ts",
+  "src/agents/embedded-agent-runner/run.overflow-compaction.test.ts",
+];
 const UNIT_FAST_NODE_TEST_STRIPES = 2;
 // Advisory runtime estimates (seconds) per split shard: [shard:*] begin->end
 // wall clock across seven green Blacksmith compact PR runs after the
@@ -585,11 +587,12 @@ function createAgentCoreSplitShards() {
 
 function createAgentsEmbeddedSplitShards() {
   const files = listTestFiles("src/agents/embedded-agent-runner");
-  const stripedFiles = files.filter((file) => file !== AGENTS_EMBEDDED_WHALE_TEST);
+  const whaleTests = new Set(AGENTS_EMBEDDED_WHALE_TESTS);
+  const stripedFiles = files.filter((file) => !whaleTests.has(file));
   return [
     {
       configs: ["test/vitest/vitest.agents-embedded-agent.config.ts"],
-      includePatterns: [AGENTS_EMBEDDED_WHALE_TEST],
+      includePatterns: AGENTS_EMBEDDED_WHALE_TESTS,
       requiresDist: false,
       shardName: "agentic-agents-embedded-overflow",
     },

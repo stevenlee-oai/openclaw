@@ -8,6 +8,7 @@ import {
   inMemoryIO,
   pluginRuntime,
   pluginSummary,
+  presentationButtons,
   type CodexPluginsManagementRuntime,
 } from "./command-plugins-management.test-support.js";
 
@@ -826,6 +827,9 @@ describe("Codex /codex plugins subcommand", () => {
       type: "buttons",
       buttons: [{ label: "Open GitHub in ChatGPT", action: { type: "url", url: installUrl } }],
     });
+    expect(buttonCommands(result)).toEqual([
+      "/codex plugins recheck security-review@company-tools",
+    ]);
     expect(io.current()["security-review@company-tools"]?.enabled).toBe(true);
   });
 
@@ -921,7 +925,7 @@ describe("Codex /codex plugins subcommand", () => {
 
     expect(result.text).toContain("GitHub: ChatGPT setup/manage link unavailable");
     expect(result.text).toContain("In Codex CLI, run /apps and select this app");
-    expect(result.presentation?.blocks.some((block) => block.type === "buttons")).toBe(false);
+    expect(presentationButtons(result).some((button) => button.action?.type === "url")).toBe(false);
     if (installUrl) {
       expect(result.text).not.toContain(installUrl);
     }
@@ -950,9 +954,7 @@ describe("Codex /codex plugins subcommand", () => {
       runtime,
     );
 
-    const buttons = result.presentation?.blocks.flatMap((block) =>
-      block.type === "buttons" ? block.buttons : [],
-    );
+    const buttons = presentationButtons(result).filter((button) => button.action?.type === "url");
     expect(buttons).toHaveLength(5);
     expect(buttons?.map((button) => button.label)).toEqual([
       "Open App 0 in ChatGPT",

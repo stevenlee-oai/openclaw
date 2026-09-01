@@ -27,6 +27,7 @@ import {
   codexPluginAppPageLinks,
   readCodexPluginReadiness,
 } from "./command-plugins-readiness.js";
+import { recheckCodexPluginReadiness } from "./command-plugins-recheck.js";
 import type { CodexPluginCommandContext } from "./command-plugins-runtime.js";
 import {
   buildCodexCommandPickerPresentation,
@@ -112,8 +113,8 @@ export async function handleCodexPluginsSubcommand(
     }
   }
 
-  if (normalized === "status") {
-    if (args.length === 0) {
+  if (normalized === "status" || normalized === "recheck") {
+    if (normalized === "status" && args.length === 0) {
       if (!canMutateCodexHost(ctx)) {
         return {
           text: "Only an owner or operator.admin gateway client can inspect Codex plugin status.",
@@ -142,19 +143,24 @@ export async function handleCodexPluginsSubcommand(
     }
     const requestedPlugin = args[0];
     const page = args[1] === undefined ? 1 : Number(args[1]);
-    if (!requestedPlugin || args.length > 2 || !Number.isSafeInteger(page) || page < 1) {
+    if (
+      !requestedPlugin ||
+      args.length > (normalized === "recheck" ? 1 : 2) ||
+      !Number.isSafeInteger(page) ||
+      page < 1
+    ) {
       return {
-        text: "Usage: /codex plugins status <configured-plugin> [page]. Use /codex plugins list to find a configured plugin.",
+        text: `Usage: /codex plugins ${normalized} <configured-plugin>${normalized === "status" ? " [page]" : ""}. Use /codex plugins list to find a configured plugin.`,
       };
     }
     if (!canMutateCodexHost(ctx)) {
       return {
-        text: "Only an owner or operator.admin gateway client can inspect Codex plugin status.",
+        text: `Only an owner or operator.admin gateway client can run /codex plugins ${normalized}.`,
       };
     }
     if (!runtime?.withContext) {
       return {
-        text: "Codex plugin status is unavailable. Check the configured Codex app-server, then run this command again.",
+        text: `Codex plugin ${normalized} is unavailable. Check the configured Codex app-server, then run this command again.`,
       };
     }
     return await runtime.withContext(async (context) => {
@@ -168,6 +174,9 @@ export async function handleCodexPluginsSubcommand(
         return {
           text: "This plugin is not explicitly configured. Use /codex plugins list, or /codex plugins available to find an install command.",
         };
+      }
+      if (normalized === "recheck") {
+        return await recheckCodexPluginReadiness(context, configured.configKey);
       }
       return formatCodexPluginReadiness(
         await readCodexPluginReadiness({
@@ -260,7 +269,7 @@ function buildPluginsMenuReply(): PluginCommandResult {
     "",
     "  1. /codex plugins list",
     "  2. /codex plugins available",
-    "  3. /codex plugins status <configured-plugin>",
+    "  3. /codex plugins status",
     "  4. /codex plugins enable",
     "  5. /codex plugins disable",
     "  6. /codex plugins help",
@@ -345,10 +354,11 @@ function buildPluginsHelp(): string {
     "- /codex plugins list                       show explicitly configured plugins",
     "- /codex plugins available                  list discoverable Codex marketplaces",
     "- /codex plugins status <configured-plugin> [page]  inspect app readiness without refreshing",
+    "- /codex plugins recheck <configured-plugin>  refresh app inventory after connecting",
     "- /codex plugins install <name>@<marketplace>  install and authorize one plugin",
     "- /codex plugins enable <name>              enable a configured plugin",
     "- /codex plugins disable <name>             disable a configured plugin",
-    "Only an owner or operator.admin can discover, install, enable, or disable plugins.",
+    "Only an owner or operator.admin can discover, inspect, recheck, install, enable, or disable plugins.",
   ].join("\n");
 }
 
@@ -545,6 +555,18 @@ async function installCodexPlugin(
               },
             ]
           : []),
+        {
+          type: "buttons",
+          buttons: [
+            {
+              label: appLinks.length > 0 ? "Recheck app tools" : "Check status",
+              action: {
+                type: "command",
+                command: `/codex plugins ${appLinks.length > 0 ? "recheck" : "status"} ${requestedId}`,
+              },
+            },
+          ],
+        },
         { type: "context", text: `${refreshWarning.trim()} ${POLICY_REFRESH_HINT}`.trim() },
       ],
     };

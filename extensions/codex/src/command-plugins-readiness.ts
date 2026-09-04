@@ -146,6 +146,18 @@ export function codexPluginAppPageLinks(readiness: CodexPluginReadiness): v2.App
   });
 }
 
+export function canRecheckCodexPluginApps(
+  readiness: CodexPluginReadiness,
+): readiness is CodexPluginReadiness & { detail: v2.PluginDetail } {
+  return (
+    readiness.openClawEnabled &&
+    readiness.summary?.installed === true &&
+    readiness.summary.enabled &&
+    readiness.detail !== undefined &&
+    codexPluginAppPageLinks(readiness).length > 0
+  );
+}
+
 /** Reads existing snapshots only. Neither metadata nor installation proves a live connection. */
 export async function readCodexPluginReadiness(params: {
   context: CodexPluginCommandContext;
@@ -298,10 +310,12 @@ export async function readCodexPluginReadiness(params: {
 export function formatCodexPluginReadiness(
   readiness: CodexPluginReadiness,
   page = 1,
+  options: { rechecked?: boolean } = {},
 ): PluginCommandResult {
   const summary = readiness.summary;
   const catalog = pluginCatalogState(summary);
   const hasApps = Boolean(readiness.detail?.apps.length);
+  const canRecheck = canRecheckCodexPluginApps(readiness);
   const lines = [
     `Plugin: ${display(readiness.commandId)}`,
     `Agent: ${display(readiness.agentId)} · Profile: ${display(readiness.profileId ?? "native Codex account (profile unknown)")}`,
@@ -335,6 +349,12 @@ export function formatCodexPluginReadiness(
     lines.push(`Next: /codex plugins install ${readiness.commandId}, then /new or /reset.`);
   }
   const blocks: MessagePresentationBlock[] = [{ type: "text", text: lines.join("\n") }];
+  if (options.rechecked) {
+    blocks.unshift({
+      type: "text",
+      text: "App inventory check completed. A hosted refresh was requested; Codex does not report whether it replaced the snapshot. Existing conversations keep their admitted app policy; use /new or /reset after connecting.",
+    });
+  }
   if (readiness.diagnostic) {
     blocks.push({ type: "text", text: readiness.diagnostic });
   }
@@ -407,7 +427,21 @@ export function formatCodexPluginReadiness(
       }
       blocks.push({
         type: "text",
-        text: "Snapshot freshness is unknown; this read does not refresh hosted tools or verify a live call. Browser setup does not change OpenClaw app access. Use /new or /reset after setup or local permission changes; existing conversations keep their admitted app policy.",
+        text: options.rechecked
+          ? "Snapshot freshness is unknown; Codex may retain its snapshot and this does not verify a live call. No conversation policy was changed."
+          : `Snapshot freshness is unknown; this read does not refresh hosted tools or verify a live call. After connecting, run /codex plugins recheck ${readiness.commandId}, then /new or /reset. Existing conversations keep their admitted app policy.`,
+      });
+      blocks.push({
+        type: "buttons",
+        buttons: [
+          {
+            label: canRecheck ? "Recheck app tools" : "Check status",
+            action: {
+              type: "command",
+              command: `/codex plugins ${canRecheck ? "recheck" : "status"} ${readiness.commandId}`,
+            },
+          },
+        ],
       });
     }
   }

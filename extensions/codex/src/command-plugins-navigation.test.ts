@@ -49,6 +49,39 @@ describe("Codex plugin navigation", () => {
     expect(buttonCommands(empty)).toEqual(["/codex plugins available"]);
   });
 
+  it.each(
+    [[], ["list"], ["menu"], ["help"]].flatMap((rest) =>
+      [true, false].map((owner) => ({ rest, owner })),
+    ),
+  )(
+    "routes hosted management through scoped status: $rest owner=$owner",
+    async ({ rest, owner }) => {
+      const io = inMemoryIO({}, { enabled: false });
+      const mutate = vi.spyOn(io, "mutate");
+      const result = await handleCodexPluginsSubcommand(
+        { ...fakeCtx, senderIsOwner: owner },
+        rest,
+        io,
+      );
+      const buttons = result.presentation?.blocks.flatMap((block) =>
+        block.type === "buttons" ? block.buttons : [],
+      );
+      expect(buttons?.filter((button) => button.action?.type === "url")).toEqual([]);
+      if (owner) {
+        expect(buttons).toContainEqual({
+          label: "Check ChatGPT app access",
+          action: { type: "command", command: "/codex plugins status" },
+        });
+        expect(result.text).toContain("/codex plugins status");
+        expect(result.text).toContain("does not change connections or OpenClaw app access");
+      } else {
+        expect(result.text).not.toContain("Check ChatGPT app access");
+      }
+      expect(result.presentationTextMode).toBe("fallback");
+      expect(mutate).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["my notes", String.raw`reviewer's "notes"\archive`])(
     "opens status from the picker for configured alias %s",
     async (configKey) => {

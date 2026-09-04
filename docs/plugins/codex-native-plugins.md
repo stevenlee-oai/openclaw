@@ -49,6 +49,30 @@ for the OpenAI account and admin model.
 
 ## Quickstart
 
+Owners and gateway clients with `operator.admin` can use **Check ChatGPT app
+access** in `/codex plugins`, `/codex plugins menu`, or `/codex plugins help`.
+Choose a configured Codex plugin to inspect its hosted app pages, local app
+access, and runtime readiness. Channels without buttons receive the same
+commands as text.
+
+A ChatGPT app page is offered only when the scoped status check supports that
+handoff. Missing or restricted metadata does not become a connection prompt.
+Codex does not report account-wide ChatGPT directory or management eligibility,
+so OpenClaw does not infer general Browse/Manage access from sign-in or an empty
+app inventory. For a plugin not yet configured, use `/codex plugins available`
+and explicitly install the desired Codex plugin.
+
+Native Codex bundles can also contain skills, hooks, and MCP servers from local
+or other marketplaces. Their controls remain available; a ChatGPT connection
+page does not manage every bundle component or native OpenClaw plugin.
+
+Use the same ChatGPT account and workspace as the active Codex harness when
+opening an app page. Browser setup does not change OpenClaw app access or prove
+readiness. Return to `/codex plugins recheck <configured-plugin>`, then use
+`/new` or `/reset` before trying newly connected apps. An already-configured
+plugin does not need to be reinstalled; the existing `allow_all_plugins` policy
+is unchanged.
+
 Preview migration from the source Codex home:
 
 ```bash
@@ -218,6 +242,8 @@ same chat where you operate the Codex harness:
 /codex plugins
 /codex plugins list
 /codex plugins available
+/codex plugins available security
+/codex plugins available --page 2
 /codex plugins install security-review@company-tools
 /codex plugins status security-review@company-tools
 /codex plugins recheck security-review@company-tools
@@ -230,10 +256,19 @@ same chat where you operate the Codex harness:
 configured plugin's key, on/off state, Codex plugin name, and marketplace
 from `plugins.entries.codex.config.codexPlugins.plugins`.
 
-`available` reads Codex's marketplace catalog using the bound workspace, so it
-can discover repository-local plugins without enabling them. The owner-scoped
-`codex_plugins` model tool is also read-only: it can recommend an exact install
-command but cannot install, enable, or add a marketplace.
+`available [query] [--page <n>]` requires an owner or `operator.admin`. It reads
+Codex's marketplace catalogs using the bound workspace, including repository-local
+plugins, without installing or enabling them. Search matches names, marketplaces,
+and descriptions case-insensitively across the full returned catalog before
+showing ten results per page. **Next page** and **Previous page** preserve your
+search; channels without buttons show the commands to send. Search text is limited
+to 100 characters. Use `--` before literal search text containing `--page`.
+
+Results retain marketplace-qualified identities and availability restrictions.
+This searches Codex catalogs, not OpenClaw's plugin registry or every ChatGPT
+connection. The owner-scoped `codex_plugins` model tool uses the same search
+matching and is also read-only: it can recommend an exact install command but
+cannot install, enable, or add a marketplace.
 
 `status` without a target opens a picker of explicitly configured plugins for
 an owner or `operator.admin`. The picker reads local OpenClaw configuration

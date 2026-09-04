@@ -58,6 +58,7 @@ describe("Codex /codex plugins subcommand", () => {
       "/codex plugins disable",
       "/codex plugins help",
       "/codex",
+      "/codex plugins status",
     ]);
   });
 

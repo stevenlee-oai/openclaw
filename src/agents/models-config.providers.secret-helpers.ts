@@ -60,6 +60,7 @@ export type ProviderAuthResolver = (
   source: "env" | "profile" | "none";
   profileId?: string;
   preparationFailed?: boolean;
+  authFlow?: string;
 };
 
 const ENV_VAR_NAME_RE = /^[A-Z_][A-Z0-9_]*$/;

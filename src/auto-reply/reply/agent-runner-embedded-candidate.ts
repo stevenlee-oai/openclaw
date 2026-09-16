@@ -196,7 +196,6 @@ export async function runEmbeddedFallbackCandidate(
         userTurnTranscriptRecorder: params.userTurnTranscriptRecorder,
         contextEngineLogicalTurnLease: params.contextEngineLogicalTurnLease,
         onContextEngineTurnCandidate: params.onContextEngineTurnCandidate,
-        onModelRequestObserved: params.onModelRequestObserved,
         currentInboundEventKind: turn.followupRun.currentInboundEventKind,
         currentInboundContext: turn.followupRun.currentInboundContext,
         explicitSkillSelections: turn.followupRun.explicitSkillSelections,

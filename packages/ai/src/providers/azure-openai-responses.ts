@@ -2,9 +2,8 @@
 import OpenAI, { AzureOpenAI } from "openai";
 import type { ResponseCreateParamsStreaming } from "openai/resources/responses/responses.js";
 import { getEnvApiKey } from "../env-api-keys.js";
+import { getAiTransportHost } from "../host.js";
 import type { BaseOpenAIStreamOptions } from "../provider-options.js";
-import { buildGuardedModelFetch } from "../transports/host-policy.js";
-import { notifyModelRequest } from "../transports/model-request-observer.js";
 import type { OpenAIResponsesReplayMode } from "../transports/openai-responses-compaction-replay.js";
 import type { OpenAIResponsesRequestParams } from "../transports/openai-responses-contracts.js";
 import type { Context, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
@@ -193,9 +192,7 @@ function createClient(
 
   const { baseUrl, apiVersion } = resolveAzureConfig(model, options);
   // Both OpenAI clients support custom fetch, so sentinels stay opaque until guarded egress.
-  const guardedFetch = buildGuardedModelFetch({ ...model, baseUrl }, undefined, {
-    onRequest: (url) => notifyModelRequest(options, { url, transport: "http" }),
-  });
+  const guardedFetch = getAiTransportHost().buildModelFetch({ ...model, baseUrl });
 
   if (isOpenAICompatibleAzureResponsesBaseUrl(baseUrl)) {
     return new OpenAI({

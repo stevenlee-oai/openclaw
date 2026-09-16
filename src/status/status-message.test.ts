@@ -132,33 +132,16 @@ describe("buildStatusMessageParts presentation", () => {
     expect(parts.presentation.blocks.some((block) => block.type === "text")).toBe(false);
   });
 
-  it("distinguishes the selected route from an older observed request in text and tables", () => {
-    const now = 1_751_529_600_000;
+  it("shows the sanitized planned endpoint in text and tables", () => {
     const parts = buildStatusMessageParts({
       modelRefs: statusModelRefs({ provider: "openai", model: "selected-model" }),
       agent: { model: "openai/selected-model" },
       selectedEndpoint: "https://user:secret@api.openai.com/v1?token=private#private",
-      sessionEntry: {
-        sessionId: "status-endpoints",
-        updatedAt: now,
-        lastModelRequest: {
-          provider: "openai",
-          model: "previous-model",
-          endpoint: "wss://chatgpt.com/backend-api/codex/responses?token=private#private",
-          transport: "websocket",
-          timestamp: now - 300_000,
-        },
-      },
-      now,
     });
     const table = parts.presentation.blocks.find((block) => block.type === "table");
     const rows = new Map(table?.type === "table" ? table.rows.map((row) => [row[0], row[1]]) : []);
-    const lastValue =
-      "wss://chatgpt.com/backend-api/codex/responses · WebSocket · openai/previous-model · 5m ago";
-    expect(parts.text).toContain("Selected endpoint: https://api.openai.com/v1");
-    expect(parts.text).toContain(`Last observed request endpoint: ${lastValue}`);
-    expect(rows.get("🌐 Selected endpoint")).toBe("https://api.openai.com/v1");
-    expect(rows.get("📡 Last observed request endpoint")).toBe(lastValue);
+    expect(parts.text).toContain("Planned endpoint: https://api.openai.com/v1");
+    expect(rows.get("🌐 Planned endpoint")).toBe("https://api.openai.com/v1");
     expect(JSON.stringify(parts)).not.toMatch(/secret|private|user:/);
   });
 
@@ -168,8 +151,7 @@ describe("buildStatusMessageParts presentation", () => {
       agent: { model: "openai/selected-model" },
       modelAuth: "oauth (codex)",
     });
-    expect(parts.text).toContain("Selected endpoint: unknown");
-    expect(parts.text).toContain("Last observed request endpoint: not observed");
+    expect(parts.text).toContain("Planned endpoint: unknown");
     expect(JSON.stringify(parts)).not.toContain("https://");
   });
 

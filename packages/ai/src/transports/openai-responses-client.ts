@@ -13,7 +13,6 @@ import {
   getFirstStreamEventTimeoutMs,
 } from "../utils/stream-first-event-timeout.js";
 import { buildGuardedModelFetch } from "./host-policy.js";
-import { copyModelRequestObserver, notifyModelRequest } from "./model-request-observer.js";
 import { emitModelTransportDebug } from "./model-transport-debug.js";
 import { formatModelTransportDebugBaseUrl } from "./model-transport-url.js";
 import { isOpenAICodexResponsesModel } from "./openai-completions-compat.js";
@@ -245,18 +244,15 @@ function createResponsesTransportExecutor(config: ResponsesTransportExecutorOpti
           options?.sessionId,
           options?.cacheRetention,
         );
-        const modelFetch = buildGuardedModelFetch(model, undefined, {
-          onRequest: (url) => notifyModelRequest(options, { url, transport: "http" }),
-        });
         const client = config.createClient(
           model,
           apiKey,
           httpHeaders,
           compactRequest
-            ? createBoundedOpenAIResponsesCompactionFetch(modelFetch)
+            ? createBoundedOpenAIResponsesCompactionFetch(buildGuardedModelFetch(model))
             : config.streamRequest
-              ? withDefaultResponsesStreamEncoding(modelFetch)
-              : modelFetch,
+              ? withDefaultResponsesStreamEncoding(buildGuardedModelFetch(model))
+              : undefined,
         );
         const nativeAstra =
           model.id === "gpt-6-astra" && supportsNativeOpenAIResponsesEndpoint(model);
@@ -456,31 +452,29 @@ function createResponsesTransportExecutor(config: ResponsesTransportExecutorOpti
         };
         if (websocketMode) {
           try {
-            const websocket = createOpenAIResponsesWebSocketStream(
-              copyModelRequestObserver(options, {
-                client,
-                request: params,
-                restoreRequest: (request) =>
-                  restoreResponsesReasoningState(context, model, responsesOptions, request),
-                mode: websocketMode,
-                sessionId: options?.sessionId,
-                headers: websocketHeaders,
-                signal: websocketSignal,
-                callerSignal: options?.signal,
-                degradeCooldownMs: websocketSessionPolicy?.degradeCooldownMs,
-                onActiveResponse:
-                  nativeAstra && params.model === "gpt-6-astra"
-                    ? options?.onActiveResponse
-                    : undefined,
-                steeringInput: (messages) =>
-                  projectResponsesSteeringInput(params, () =>
-                    buildRequest("checkpoint", {
-                      ...context,
-                      messages: [...context.messages, ...messages],
-                    }),
-                  ),
-              }),
-            );
+            const websocket = createOpenAIResponsesWebSocketStream({
+              client,
+              request: params,
+              restoreRequest: (request) =>
+                restoreResponsesReasoningState(context, model, responsesOptions, request),
+              mode: websocketMode,
+              sessionId: options?.sessionId,
+              headers: websocketHeaders,
+              signal: websocketSignal,
+              callerSignal: options?.signal,
+              degradeCooldownMs: websocketSessionPolicy?.degradeCooldownMs,
+              onActiveResponse:
+                nativeAstra && params.model === "gpt-6-astra"
+                  ? options?.onActiveResponse
+                  : undefined,
+              steeringInput: (messages) =>
+                projectResponsesSteeringInput(params, () =>
+                  buildRequest("checkpoint", {
+                    ...context,
+                    messages: [...context.messages, ...messages],
+                  }),
+                ),
+            });
             finishWebSocket = websocket.finish;
             websocketBaseline = websocket.fullRequest;
             recordResponsesInputReplay(output, websocket.inputReplay);

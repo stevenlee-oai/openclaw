@@ -1080,7 +1080,6 @@ describe("CLI attempt execution", () => {
 
   async function runOuterCliFallback(params: {
     suppression?: "heartbeat" | "preserved-state";
-    assertSourceCurrent?: () => void;
     sessionKey: string;
     sessionEntry: SessionEntry;
     sessionStore: Record<string, SessionEntry>;
@@ -1106,7 +1105,6 @@ describe("CLI attempt execution", () => {
       message: "outer fallback",
       modelFallbacksOverride: ["claude-cli/opus"],
       bootstrapContextRunKind: params.suppression === "heartbeat" ? "heartbeat" : undefined,
-      assertSourceCurrent: params.assertSourceCurrent,
     } satisfies RunAgentAttemptParams["opts"];
     const lifecycleGeneration = getAgentEventLifecycleGeneration();
     const prepared: Parameters<typeof runEmbeddedAgentAttempt>[0]["prepared"] = {
@@ -1204,101 +1202,6 @@ describe("CLI attempt execution", () => {
       await admission.finish();
     }
   }
-
-  it.each(["current", "replacement writer", "revoked source", "preserved state"] as const)(
-    "handles %s ownership when the primary dispatched and both candidates throw",
-    async (owner) => {
-      const runId = `command-request-failure-${owner.replaceAll(" ", "-")}`;
-      const sessionKey = `agent:main:${runId}`;
-      const sessionEntry = makeSessionEntry(runId, {
-        modelProvider: "claude-cli",
-        model: "selected-model",
-        inputTokens: 11,
-        totalTokens: 22,
-        totalTokensFresh: true,
-      });
-      const sessionStore = { [sessionKey]: sessionEntry };
-      await writeSessionStoreSeed(sessionStore);
-      const request = {
-        provider: "claude-cli",
-        model: "sonnet",
-        endpoint: "https://api.example.com/v1/messages",
-        transport: "http" as const,
-        timestamp: 20,
-      };
-      let sourceCurrent = true;
-      const fallbackError = new FailoverError("fallback credentials unavailable before dispatch", {
-        reason: "auth",
-        provider: "claude-cli",
-        model: "opus",
-      });
-      const runtime = await import("./attempt-execution.runtime.js");
-      const attempt = vi
-        .spyOn(runtime, "runAgentAttempt")
-        .mockImplementationOnce(async (params) => {
-          params.onModelRequestObserved?.(request);
-          params.onCompactionAccounting?.({
-            kind: "durable",
-            count: 0,
-            target: {
-              agentId: "main",
-              sessionId: sessionEntry.sessionId,
-              sessionKey,
-              storePath,
-              lifecycleRevision: sessionEntry.lifecycleRevision,
-              activeWriterRunId: undefined,
-            },
-          });
-          throw new FailoverError("primary failed after dispatch", {
-            reason: "rate_limit",
-            provider: "claude-cli",
-            model: "sonnet",
-          });
-        })
-        .mockImplementationOnce(async () => {
-          if (owner === "replacement writer") {
-            await replaceSessionEntry(
-              { sessionKey, storePath },
-              { ...sessionEntry, activeWriterRunId: "replacement-writer" },
-            );
-          }
-          sourceCurrent = owner !== "revoked source";
-          throw fallbackError;
-        });
-      try {
-        await expect(
-          runOuterCliFallback({
-            sessionKey,
-            sessionEntry,
-            sessionStore,
-            runId,
-            suppression: owner === "preserved state" ? "preserved-state" : undefined,
-            assertSourceCurrent: () => {
-              if (!sourceCurrent) {
-                throw new Error("source revoked");
-              }
-            },
-          }),
-        ).rejects.toMatchObject({
-          name: "FailoverError",
-          message: expect.stringContaining(fallbackError.message),
-        });
-        expect(attempt).toHaveBeenCalledTimes(2);
-        expect(readSessionStore()[sessionKey]).toMatchObject({
-          modelProvider: sessionEntry.modelProvider,
-          model: sessionEntry.model,
-          inputTokens: sessionEntry.inputTokens,
-          totalTokens: sessionEntry.totalTokens,
-          totalTokensFresh: true,
-        });
-        expect(readSessionStore()[sessionKey]?.lastModelRequest).toEqual(
-          owner === "current" ? request : undefined,
-        );
-      } finally {
-        attempt.mockRestore();
-      }
-    },
-  );
 
   it.each([
     "accepted",

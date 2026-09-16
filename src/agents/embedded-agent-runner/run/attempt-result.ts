@@ -41,7 +41,6 @@ export function createAttemptCarryover() {
   let latestMcpConnectAction: EmbeddedRunAttemptResult["latestMcpConnectAction"];
   let heartbeatToolResponse: EmbeddedRunAttemptResult["heartbeatToolResponse"];
   let modelAttempt: AgentRuntimeModelAttempt | undefined;
-  let lastModelRequest: EmbeddedRunAttemptResult["lastModelRequest"];
   return {
     apply(
       attempt: Pick<
@@ -50,13 +49,9 @@ export function createAttemptCarryover() {
         | "latestMcpConnectAction"
         | "heartbeatToolResponse"
         | "modelAttempt"
-        | "lastModelRequest"
       >,
     ): void {
       modelAttempt = attempt.modelAttempt;
-      // A prepared retry that never sent a request must not erase the preceding dispatch.
-      lastModelRequest = attempt.lastModelRequest ?? lastModelRequest;
-      attempt.lastModelRequest = lastModelRequest;
       latestMcpAppChannelView = attempt.latestMcpAppChannelView ?? latestMcpAppChannelView;
       attempt.latestMcpAppChannelView = latestMcpAppChannelView;
       latestMcpConnectAction = attempt.latestMcpConnectAction ?? latestMcpConnectAction;
@@ -66,9 +61,6 @@ export function createAttemptCarryover() {
     },
     get modelAttempt() {
       return modelAttempt;
-    },
-    get lastModelRequest() {
-      return lastModelRequest;
     },
   };
 }

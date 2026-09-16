@@ -96,7 +96,6 @@ export async function persistSessionUsageUpdate(params: {
   providerUsed?: string;
   /** Session selection can differ from the response model used for billing. */
   runtimeModelSelection?: ModelRef;
-  lastModelRequest?: SessionEntry["lastModelRequest"];
   agentHarnessId?: string;
   contextTokensUsed?: number;
   contextTokensSource?: SessionEntry["contextTokensSource"];
@@ -144,7 +143,7 @@ export async function persistSessionUsageUpdate(params: {
     hasFreshContextSnapshot ||
     hasCurrentContextSnapshot ||
     Boolean(modelSelection.model || params.contextTokensUsed);
-  if (hasBilling || hasContextUpdate || params.lastModelRequest) {
+  if (hasBilling || hasContextUpdate) {
     try {
       await patchSessionEntryCore(
         { agentId, storePath, sessionKey },
@@ -191,12 +190,6 @@ export async function persistSessionUsageUpdate(params: {
                 modelUsed: params.modelUsed ?? entry.model,
               });
           const patch: Partial<SessionEntry> = {
-            ...(!preserveUserFacingRunState &&
-            params.lastModelRequest &&
-            (!entry.lastModelRequest ||
-              params.lastModelRequest.timestamp >= entry.lastModelRequest.timestamp)
-              ? { lastModelRequest: params.lastModelRequest }
-              : {}),
             modelProvider: preserveSessionModelState
               ? entry.modelProvider
               : (modelSelection.provider ?? entry.modelProvider),

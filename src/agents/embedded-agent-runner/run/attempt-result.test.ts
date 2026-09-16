@@ -551,30 +551,6 @@ describe("attempt result projection", () => {
     expect(latest.latestMcpConnectAction.authorizationUrl).toBe("https://auth.example/latest");
   });
 
-  it("retains the last dispatched endpoint through a retry that fails before sending", () => {
-    const carryover = createAttemptCarryover();
-    const request = {
-      provider: "test",
-      model: "first",
-      endpoint: "https://first.test/v1/responses",
-      transport: "http" as const,
-      timestamp: 10,
-    };
-    carryover.apply({ lastModelRequest: request });
-    const unsent: Parameters<typeof carryover.apply>[0] = {};
-    carryover.apply(unsent);
-    expect(unsent.lastModelRequest).toEqual(request);
-    const fallback = {
-      ...request,
-      model: "fallback",
-      endpoint: "https://second.test",
-      timestamp: 20,
-    };
-    carryover.apply({ lastModelRequest: fallback });
-    expect(carryover.lastModelRequest).toEqual(fallback);
-    expect(createAttemptCarryover().lastModelRequest).toBeUndefined();
-  });
-
   it.each([
     { label: "notifying", notify: true, expectedText: "The monitored task is complete." },
     { label: "quiet", notify: false, expectedText: HEARTBEAT_TOKEN },

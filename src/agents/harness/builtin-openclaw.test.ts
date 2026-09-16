@@ -76,7 +76,6 @@ describe("createOpenClawAgentHarness", () => {
     const prepareAssistantTranscriptMessage = vi.fn();
     const onAttemptDeadlineChanged = vi.fn();
     const onAttemptTimeoutArmed = vi.fn();
-    const onModelRequest = vi.fn();
     const onAgentEvent = vi.fn<NonNullable<EmbeddedRunAttemptParams["onAgentEvent"]>>();
     const attempt = {
       prompt: "finalize",
@@ -89,7 +88,6 @@ describe("createOpenClawAgentHarness", () => {
       onPartialReply: vi.fn(),
       onAttemptDeadlineChanged,
       onAttemptTimeoutArmed,
-      onModelRequest,
       onAgentEvent,
       deferTerminalLifecycle: true,
       prepareAssistantTranscriptMessage,
@@ -117,7 +115,6 @@ describe("createOpenClawAgentHarness", () => {
         initialReplayState: { replayInvalid: false, hadPotentialSideEffects: false },
         operation: "settled-tool-finalization",
         prepareAssistantTranscriptMessage,
-        onModelRequest,
       }),
     );
     const finalizationAttempt = runEmbeddedAttempt.mock.calls[0]?.[0] as Record<string, unknown>;

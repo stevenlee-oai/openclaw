@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { buildGuardedModelFetch } from "../transports/host-policy.js";
+import { getAiTransportHost } from "../host.js";
 import { resolveOpenAIClientBaseUrl } from "../transports/openai-transport-shared.js";
 import type { Model } from "../types.js";
 import { isCloudflareProvider, resolveCloudflareBaseUrl } from "./cloudflare.js";
@@ -9,7 +9,6 @@ export function createOpenAIProviderClient(
   apiKey: string,
   headers: Record<string, string>,
   optionsHeaders?: Record<string, string>,
-  onRequest?: (url: string) => void,
 ): OpenAI {
   // Merge options headers last so they can override defaults
   if (optionsHeaders) {
@@ -35,6 +34,6 @@ export function createOpenAIProviderClient(
     defaultHeaders,
     maxRetries: 0,
     // OpenAI supports custom fetch, so sentinels stay opaque until guarded egress.
-    fetch: buildGuardedModelFetch(model, undefined, { onRequest }),
+    fetch: getAiTransportHost().buildModelFetch(model),
   });
 }

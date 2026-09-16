@@ -2,7 +2,6 @@
 import type { ResponseCreateParamsStreaming } from "openai/resources/responses/responses.js";
 import { getEnvApiKey } from "../env-api-keys.js";
 import type { BaseOpenAIStreamOptions } from "../provider-options.js";
-import { notifyModelRequest } from "../transports/model-request-observer.js";
 import { resolveOpenAICompletionsCompat } from "../transports/openai-completions-compat.js";
 import type { OpenAIResponsesReplayMode } from "../transports/openai-responses-compaction-replay.js";
 import type { OpenAIResponsesRequestParams } from "../transports/openai-responses-contracts.js";
@@ -76,7 +75,6 @@ export const streamOpenAIResponses: StreamFunction<"openai-responses", OpenAIRes
         apiKey,
         resolveProviderSimpleCompletionHeaders(model, options),
         cacheSessionId,
-        (url) => notifyModelRequest(options, { url, transport: "http" }),
       );
     },
     buildParams: (_requestModel, replayMode) => buildParams(model, context, options, replayMode),
@@ -116,7 +114,6 @@ function createClient(
   apiKey?: string,
   optionsHeaders?: Record<string, string>,
   sessionId?: string,
-  onRequest?: (url: string) => void,
 ) {
   if (!apiKey) {
     throw new Error(`No API key for provider: ${model.provider}`);
@@ -140,7 +137,7 @@ function createClient(
     headers["x-client-request-id"] = sessionId;
   }
 
-  return createOpenAIProviderClient(model, apiKey, headers, optionsHeaders, onRequest);
+  return createOpenAIProviderClient(model, apiKey, headers, optionsHeaders);
 }
 
 function buildParams(

@@ -2,12 +2,12 @@ import { resolveAuthProfileDisplayLabel } from "../agents/auth-profiles.js";
 import { resolveModelAuthLabel } from "../agents/model-auth-label.js";
 import { createModelCatalogDecisions } from "../agents/model-catalog-decisions.js";
 import { findModelInCatalog } from "../agents/model-catalog-lookup.js";
-import { formatModelEndpointUrl } from "../agents/model-endpoint.js";
 import { getPreparedModelRuntimeAuthStore } from "../agents/prepared-model-runtime-auth.js";
 import type { PreparedModelRuntimeSnapshot } from "../agents/prepared-model-runtime.types.js";
 import type { SessionEntry } from "../config/sessions.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { isUserModelAuthProfileId } from "../state/user-model-account-id.js";
+import { formatModelEndpointUrl } from "./status-model-endpoint.js";
 
 type StatusModelResolution = { authLabel?: string; endpoint?: string };
 
@@ -96,7 +96,9 @@ export function createStatusModelResolver(params: {
     const endpoint = evaluation.selectedRoute?.baseUrl
       ? formatModelEndpointUrl(evaluation.selectedRoute.baseUrl)
       : undefined;
-    if (usesHostAuth || hasAuthOverride) {
+    // A selected route and its auth must describe the same decision. Provider-wide
+    // labels can prefer another stored credential over an explicitly configured key.
+    if (hasAuthOverride || (usesHostAuth && !evaluation.selectedRoute)) {
       return { authLabel, endpoint };
     }
     const mode =

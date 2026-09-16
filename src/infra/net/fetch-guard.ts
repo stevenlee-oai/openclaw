@@ -62,11 +62,8 @@ export type GuardedFetchMode = (typeof GUARDED_FETCH_MODE)[keyof typeof GUARDED_
 export type GuardedFetchOptions = {
   url: string;
   fetchImpl?: FetchLike;
-  /**
-   * Final synchronous check before each request or redirect. The guard supplies
-   * the resolved URL; optional for existing adapters that invoke checks without arguments.
-   */
-  beforeRequest?: (url?: string) => void | undefined;
+  /** Final synchronous check after transport preparation and before each request or redirect. */
+  beforeRequest?: () => void | undefined;
   init?: RequestInit;
   capture?:
     | false
@@ -655,7 +652,7 @@ async function fetchWithSsrFGuardInternal(
       // because the default global fetch path will not honor per-request
       // dispatchers.
       const shouldUseRuntimeFetch = Boolean(dispatcher) && !supportsDispatcherInit;
-      const beforeRequestResult: unknown = params.beforeRequest?.(parsedUrl.toString());
+      const beforeRequestResult: unknown = params.beforeRequest?.();
       if (isPromiseLike(beforeRequestResult)) {
         void Promise.resolve(beforeRequestResult).catch(() => undefined);
         throw new TypeError("beforeRequest must be synchronous.");

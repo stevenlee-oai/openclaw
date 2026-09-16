@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreparedAgentCredentialMode } from "../agents/agent-auth-credential-modes.js";
+import * as authProfiles from "../agents/auth-profiles.js";
 import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
 import { dualRoutes } from "../agents/model-auth-availability.test-support.js";
 import * as openaiRoutes from "../agents/openai-model-routes.js";
@@ -9,6 +10,7 @@ import type { SessionEntry } from "../config/sessions.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createPluginMetadataSnapshotFixture } from "../plugins/plugin-metadata.test-support.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
+import * as userModelAccounts from "../state/user-model-accounts.js";
 import { createStatusModelResolver } from "./status-model-auth.js";
 
 const cfg: OpenClawConfig = {
@@ -88,7 +90,7 @@ function statusAuth(
   });
 }
 
-describe("native status authentication", () => {
+describe("status model authentication and endpoint", () => {
   beforeEach(() => {
     // These fixtures model an absent host credential, even on credentialed devboxes.
     vi.stubEnv("OPENAI_API_KEY", undefined);
@@ -125,6 +127,83 @@ describe("native status authentication", () => {
       }),
     ).toEqual({
       authLabel: "oauth (personal account)",
+      endpoint: "https://api.openai.com/v1",
+    });
+  });
+
+  it.each(["openclaw", "codex"])(
+    "keeps a pinned personal SIWC account on Responses with %s despite native login",
+    async (runtimeId) => {
+      const profileId = "personal:gateway-owner:00000000-0000-4000-8000-000000000001";
+      const profiles: AuthProfileStore["profiles"] = {
+        [profileId]: {
+          type: "oauth",
+          provider: "openai",
+          authFlow: "chatgpt-token-sharing",
+          access: "sharing-access",
+          refresh: "sharing-refresh",
+          expires: Date.now() + 60_000,
+          email: "private@example.test",
+        },
+      };
+      vi.spyOn(userModelAccounts, "readUserModelAuthProfile").mockReturnValue(undefined);
+      vi.spyOn(authProfiles, "loadAuthProfileStoreWithoutExternalProfiles").mockReturnValue({
+        version: 1,
+        profiles,
+      });
+      const resolve = statusAuth(
+        { source: "native", mode: "oauth" },
+        {
+          profiles,
+          nativeDiscovery: { accountType: "chatgpt", authMode: "oauth" },
+          sessionEntry: {
+            sessionId: "status-personal",
+            updatedAt: 1,
+            authProfileOverride: profileId,
+            authProfileOverrideSource: "user",
+            modelProvider: "openai",
+          },
+        },
+      );
+      expect(await resolve({ ...selection, runtimeId })).toEqual({
+        authLabel: "oauth (personal account)",
+        endpoint: "https://api.openai.com/v1",
+      });
+    },
+  );
+
+  it("pairs authored API-key routing with its selected auth instead of stored OAuth", async () => {
+    const profiles: AuthProfileStore["profiles"] = {
+      "openai:chatgpt": {
+        type: "oauth",
+        provider: "openai",
+        access: "native-access",
+        refresh: "native-refresh",
+        expires: Date.now() + 60_000,
+      },
+    };
+    vi.spyOn(authProfiles, "loadAuthProfileStoreWithoutExternalProfiles").mockReturnValue({
+      version: 1,
+      profiles,
+    });
+    const resolve = statusAuth(undefined, {
+      profiles,
+      config: {
+        ...cfg,
+        models: {
+          providers: {
+            openai: {
+              auth: "api-key",
+              apiKey: "configured-platform-key",
+              baseUrl: "https://api.openai.com/v1",
+              models: [],
+            },
+          },
+        },
+      },
+    });
+    expect(await resolve({ ...selection, runtimeId: "openclaw" })).toEqual({
+      authLabel: "api-key",
       endpoint: "https://api.openai.com/v1",
     });
   });

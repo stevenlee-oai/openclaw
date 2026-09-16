@@ -5,7 +5,6 @@ import { clampThinkingLevel } from "../model-utils.js";
 import { reasoningTagTextPolicy, type OpenAICompletionsOptions } from "../provider-options.js";
 // OpenAI completions provider adapts chat completions to the agent runtime.
 import { createAssistantOutput } from "../transports/assistant-output.js";
-import { notifyModelRequest } from "../transports/model-request-observer.js";
 import {
   resolveOpenAICompletionsCompat,
   type ResolvedOpenAICompletionsCompat,
@@ -76,7 +75,6 @@ export const streamOpenAICompletions: StreamFunction<
         resolveProviderSimpleCompletionHeaders(model, options),
         cacheSessionId,
         compat,
-        (url) => notifyModelRequest(options, { url, transport: "http" }),
       );
       let params = buildOpenAICompletionsRequest(model, context, options, {
         mode: "direct",
@@ -250,7 +248,6 @@ function createClient(
   optionsHeaders?: Record<string, string>,
   sessionId?: string,
   compat: ResolvedOpenAICompletionsCompat = resolveOpenAICompletionsCompat(model),
-  onRequest?: (url: string) => void,
 ) {
   if (!apiKey) {
     throw new Error(`No API key for provider: ${model.provider}`);
@@ -276,5 +273,5 @@ function createClient(
     }
   }
 
-  return createOpenAIProviderClient(model, apiKey, headers, optionsHeaders, onRequest);
+  return createOpenAIProviderClient(model, apiKey, headers, optionsHeaders);
 }

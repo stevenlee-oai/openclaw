@@ -226,7 +226,6 @@ export function buildErrorAgentMeta(params: {
   provider: string;
   model: string;
   credentialSource?: EmbeddedAgentMeta["credentialSource"];
-  lastModelRequest?: EmbeddedAgentMeta["lastModelRequest"];
   contextTokens?: number;
   usageAccumulator: UsageAccumulator;
   lastRunPromptUsage: UsageSnapshot | undefined;
@@ -243,7 +242,6 @@ export function buildErrorAgentMeta(params: {
     provider: params.provider,
     model: params.model,
     ...(params.credentialSource ? { credentialSource: params.credentialSource } : {}),
-    ...(params.lastModelRequest ? { lastModelRequest: params.lastModelRequest } : {}),
     ...(params.contextTokens ? { contextTokens: params.contextTokens } : {}),
     ...(params.contextTokens ? { contextTokensSource: "resolved" as const } : {}),
     ...(usageMeta.usage ? { usage: usageMeta.usage } : {}),

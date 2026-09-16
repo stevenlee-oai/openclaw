@@ -108,16 +108,11 @@ Use `openclaw skills check --agent <id>` to inspect the missing requirements.
   backend, or an ACP backend such as `codex (acp/acpx)`. See
   [Agent runtimes](/concepts/agent-runtimes) for the provider/model/runtime
   distinction.
-- The `/status` chat command separates `Selected endpoint` (the currently
-  resolved base URL) from `Last observed request endpoint` (the latest recorded
-  request destination, transport, and age). The latter also names the model
-  when it differs from the selection, so a model change or fallback does not
-  relabel a previous request. Unknown selected routes display `unknown`;
-  sessions without an observed request display `not observed`. Transports that
-  do not report endpoints leave the previous observation and its age intact.
-  An observation records a request attempt, not success or billing attribution.
-  Displayed URLs omit user information, query parameters, and fragments; custom
-  paths are hidden, leaving only their origin visible.
+- The `/status` chat command shows `Planned endpoint`: the upstream base URL
+  from the same prepared model/auth decision used to select the route. It
+  describes the current selection, not a previous request or billing attribution.
+  Routes without a resolved endpoint display `unknown`. Displayed URLs omit
+  user information, query parameters, and fragments; custom paths are hidden.
 - When the current session snapshot is sparse, the `/status` chat command (see
   [Slash commands](/tools/slash-commands)) can backfill token and cache counters
   from the most recent transcript usage log. Existing nonzero live values still

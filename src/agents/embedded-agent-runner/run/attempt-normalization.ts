@@ -231,7 +231,6 @@ export async function normalizeEmbeddedRunAttempt(input: {
         provider,
         model: preparedRuntime.model.id,
         credentialSource: attempt.modelAttempt?.credentialSource,
-        lastModelRequest: attempt.lastModelRequest,
         ...runtime.outerContextTokenMeta,
         usageAccumulator: input.usageAccumulator,
         lastRunPromptUsage,

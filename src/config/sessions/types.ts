@@ -52,14 +52,6 @@ export type { SessionSystemPromptReport } from "./session-system-prompt-report.j
 export type SessionScope = "per-sender" | "global";
 export type SessionChatType = ChatType;
 export const SESSION_TOTAL_TOKENS_VERSION = 1 as const;
-/** Latest observed user-turn request dispatch; no credentials, headers, or arbitrary URL paths. */
-export type SessionModelRequest = {
-  provider: string;
-  model: string;
-  endpoint: string;
-  transport: "http" | "websocket";
-  timestamp: number;
-};
 type SessionVisibility = "shared" | "read-only" | "suggest" | "draft";
 
 export type SessionOrigin = {
@@ -583,8 +575,6 @@ type SessionEntryCore = SessionRestartRecoveryState &
      * incompatible runtime harnesses.
      */
     agentHarnessId?: string;
-    /** Actual dispatch observation, independent of the current model/account selection. */
-    lastModelRequest?: SessionModelRequest;
     fallbackNotice?: FallbackNoticeState;
     contextTokens?: number;
     /** Origin of the persisted context window; `resolved` is legacy/unverified. */

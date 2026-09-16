@@ -110,9 +110,11 @@ function resolveRunStartupPhase(
     case "process_spawned":
     case "model_call_started":
       return "starting_model";
-    default:
+    case "tool_execution_started":
+    case "assistant_output_started":
       return undefined;
   }
+  return undefined;
 }
 
 async function executeAgentTurnInternalLoop(
@@ -366,12 +368,11 @@ async function executeAgentTurnInternalLoop(
       });
       lifecycleGeneration = fallbackCycleState.lifecycleGeneration;
       if (cycle.kind === "aborted") {
-        return { ...cycle, lastModelRequest: fallbackCycleState.lastModelRequest };
+        return cycle;
       }
       if (cycle.kind === "final") {
         return {
           ...cycle,
-          lastModelRequest: fallbackCycleState.lastModelRequest,
           resolved: {
             provider: fallbackCycleState.attemptedRuntimeProvider,
             model: fallbackCycleState.attemptedRuntimeModel,
@@ -401,12 +402,11 @@ async function executeAgentTurnInternalLoop(
         modelPatch,
       });
       if (action.kind === "aborted") {
-        return { ...action, lastModelRequest: fallbackCycleState.lastModelRequest };
+        return action;
       }
       if (action.kind === "final") {
         return {
           ...action,
-          lastModelRequest: fallbackCycleState.lastModelRequest,
           resolved: {
             provider: fallbackCycleState.attemptedRuntimeProvider,
             model: fallbackCycleState.attemptedRuntimeModel,
@@ -440,7 +440,6 @@ async function executeAgentTurnInternalLoop(
       params.replyOperation?.fail("run_failed", finalEmbeddedError);
       return {
         kind: "final",
-        lastModelRequest: fallbackCycleState.lastModelRequest,
         resolved: { provider: fallbackProvider, model: fallbackModel },
         payload: markAgentRunFailureReplyPayload({
           text: "⚠️ Context overflow — this conversation is too large for the model. Use /new to start a fresh session.",
@@ -510,7 +509,6 @@ async function executeAgentTurnInternalLoop(
 
   return {
     kind: "completed",
-    lastModelRequest: fallbackCycleState.lastModelRequest,
     maintenanceAuthProfile: fallbackCycleState.maintenanceAuthProfile,
     compactionRequestBudget: fallbackCycleState.compactionRequestBudget,
     result: runResult,
@@ -648,22 +646,13 @@ async function executeAgentTurnOutcome(params: AgentTurnParams): Promise<AgentTu
     }
     const abortReason = resolveReplyOperationAbortReason(executionParams.replyOperation);
     if (abortReason) {
-      return {
-        runId,
-        outcome: {
-          kind: "aborted",
-          reason: abortReason,
-          lastModelRequest: internal.lastModelRequest,
-          ...completedCompaction(),
-        },
-      };
+      return { runId, outcome: { kind: "aborted", reason: abortReason, ...completedCompaction() } };
     }
     if (internal.kind === "final") {
       return {
         runId,
         outcome: {
           kind: "rejected",
-          lastModelRequest: internal.lastModelRequest,
           payload: internal.payload,
           resolved: internal.resolved,
           ...(internal.postCompactionModelFailure
@@ -694,7 +683,6 @@ async function executeAgentTurnOutcome(params: AgentTurnParams): Promise<AgentTu
       runId,
       outcome: {
         kind: "settled",
-        lastModelRequest: internal.lastModelRequest,
         maintenanceAuthProfile: internal.maintenanceAuthProfile,
         compactionRequestBudget: internal.compactionRequestBudget,
         ...terminalStatus,

@@ -75,26 +75,6 @@ describe("buildStatusText prepared context windows", () => {
     });
   }
 
-  it("carries recorded request provenance through the shared status entry point", async () => {
-    const parts = await renderPreparedStatus({
-      sessionEntry: {
-        sessionId: "request-status",
-        updatedAt: 1,
-        lastModelRequest: {
-          provider: "openai",
-          model: "previous-model",
-          endpoint: "https://api.openai.com/v1/responses",
-          transport: "http",
-          timestamp: Date.now() - 300_000,
-        },
-      },
-    });
-    expect(parts.text).toContain("Selected endpoint: unknown");
-    expect(parts.text).toContain(
-      "Last observed request endpoint: https://api.openai.com/v1/responses · HTTP · openai/previous-model",
-    );
-  });
-
   async function renderTerminalFallback(
     params: {
       entry?: Partial<InternalSessionEntry>;

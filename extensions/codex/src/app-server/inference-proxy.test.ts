@@ -106,16 +106,13 @@ async function fixture(
   });
   proxies.push(proxy);
   const controller = new AbortController();
-  const onModelRequest = vi.fn();
   const registration = proxy.context.register({
     threadId: "root",
     text: "synthetic persona",
     signal: controller.signal,
     assertCurrent: () => {},
-    onModelRequest,
   });
   const body = {
-    model: "fixture-model",
     ...(withInstructions ? { instructions: "native base" } : {}),
     input: [{ role: "developer", content: "catalog" }],
     client_metadata: {
@@ -127,7 +124,7 @@ async function fixture(
       }),
     },
   };
-  return { proxy, controller, registration, body, onModelRequest };
+  return { proxy, controller, registration, body };
 }
 
 describe("private inference HTTP relay", () => {
@@ -136,7 +133,7 @@ describe("private inference HTTP relay", () => {
       token: forceRefresh ? "synthetic-refreshed" : "synthetic-access",
       assertCurrent: () => {},
     }));
-    const { proxy, body, onModelRequest } = await fixture(true, { resolve });
+    const { proxy, body } = await fixture(true, { resolve });
     transport.fetch.mockImplementation(async (args) => {
       args.beforeRequest();
       const first = args.init.headers.authorization === "Bearer synthetic-access";
@@ -156,7 +153,6 @@ describe("private inference HTTP relay", () => {
       ).toBe(502);
     }
     expect(resolve).not.toHaveBeenCalled();
-    expect(onModelRequest).not.toHaveBeenCalled();
     const result = await post(proxy.baseUrl + "/responses", {
       method: "POST",
       body: JSON.stringify(body),
@@ -171,10 +167,6 @@ describe("private inference HTTP relay", () => {
     expect(await result.text()).toBe("data: completed\n\n");
     expect(resolve.mock.calls).toEqual([[false], [true]]);
     expect(transport.fetch).toHaveBeenCalledTimes(2);
-    expect(onModelRequest.mock.calls).toEqual([
-      [{ url: "https://api.openai.com/v1/responses", transport: "http", model: "fixture-model" }],
-      [{ url: "https://api.openai.com/v1/responses", transport: "http", model: "fixture-model" }],
-    ]);
     expect(transport.fetch.mock.calls[1]?.[0].init.headers.authorization).toBe(
       "Bearer synthetic-refreshed",
     );
@@ -192,13 +184,12 @@ describe("private inference HTTP relay", () => {
         },
       };
     });
-    const { proxy, body, registration, onModelRequest } = await fixture(true, { resolve });
+    const { proxy, body, registration } = await fixture(true, { resolve });
     expect(
       (await post(proxy.baseUrl + "/responses", { method: "POST", body: JSON.stringify(body) }))
         .status,
     ).toBe(502);
     expect(transport.fetch).not.toHaveBeenCalled();
-    expect(onModelRequest).not.toHaveBeenCalled();
     loseAdmission = false;
     const next = await fixture(true, { resolve });
     let writes = 0;
@@ -217,7 +208,6 @@ describe("private inference HTTP relay", () => {
       ).status,
     ).toBe(502);
     expect(writes).toBe(0);
-    expect(next.onModelRequest).not.toHaveBeenCalled();
   });
 
   it("rejects unadmitted native prewarm for OAuth", async () => {
@@ -236,7 +226,7 @@ describe("private inference HTTP relay", () => {
 
   it("authorizes automatic compaction only with the current admitted generation", async () => {
     const resolve = vi.fn(async () => ({ token: "synthetic-access", assertCurrent: () => {} }));
-    const { proxy, body, registration, onModelRequest } = await fixture(true, { resolve });
+    const { proxy, body, registration } = await fixture(true, { resolve });
     const compaction = {
       ...body,
       client_metadata: {
@@ -271,7 +261,6 @@ describe("private inference HTTP relay", () => {
       ).status,
     ).toBe(502);
     expect(resolve).toHaveBeenCalledOnce();
-    expect(onModelRequest).not.toHaveBeenCalled();
   });
   it.each([
     { zstd: false, withInstructions: true },
@@ -480,7 +469,7 @@ describe("private inference WebSocket relay", () => {
         throw new Error("fixture did not listen");
       }
       transport.upstream = "ws://127.0.0.1:" + address.port;
-      const { proxy, registration, body, onModelRequest } = await fixture(withInstructions);
+      const { proxy, registration, body } = await fixture(withInstructions);
       const socket = new WebSocket(proxy.baseUrl.replace("http:", "ws:") + "/responses");
       let responseHeaders: IncomingHttpHeaders | undefined;
       socket.on("upgrade", (response) => {
@@ -488,7 +477,6 @@ describe("private inference WebSocket relay", () => {
       });
       try {
         await once(socket, "open");
-        expect(onModelRequest).not.toHaveBeenCalled();
         expect(responseHeaders).toMatchObject({
           "x-codex-turn-state": "synthetic-turn-state",
           "x-reasoning-included": "true",
@@ -520,22 +508,6 @@ describe("private inference WebSocket relay", () => {
           previous_response_id: "previous",
         };
         expect(received).toEqual([expected, { ...expected, input: [] }]);
-        expect(onModelRequest.mock.calls).toEqual([
-          [
-            {
-              url: "wss://api.openai.com/v1/responses",
-              transport: "websocket",
-              model: "fixture-model",
-            },
-          ],
-          [
-            {
-              url: "wss://api.openai.com/v1/responses",
-              transport: "websocket",
-              model: "fixture-model",
-            },
-          ],
-        ]);
         expect(transport.dials).toEqual(["wss://api.openai.com/v1/responses"]);
         expect(transport.resolve).toHaveBeenCalledTimes(proxied ? 0 : 1);
         if (proxied) {

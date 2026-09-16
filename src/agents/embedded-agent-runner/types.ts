@@ -6,7 +6,6 @@ import type { HeartbeatToolResponse } from "../../auto-reply/heartbeat-tool-resp
 import type {
   CliSessionBinding,
   SessionContextBudgetStatus,
-  SessionModelRequest,
   SessionSystemPromptReport,
 } from "../../config/sessions/types.js";
 import type { ContextEngineSessionTarget } from "../../context-engine/types.js";
@@ -60,7 +59,6 @@ export type EmbeddedAgentMeta = {
   runtimeModelSelection?: ModelRef;
   /** Redacted credential source selected for the terminal physical model attempt. */
   credentialSource?: AgentRuntimeCredentialSource;
-  lastModelRequest?: SessionModelRequest;
   fallbackAttempts?: FallbackAttempt[];
   cliSessionBinding?: CliSessionBinding;
   clearCliSessionBinding?: boolean;

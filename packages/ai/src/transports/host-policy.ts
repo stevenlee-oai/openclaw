@@ -4,20 +4,11 @@ import { getAiTransportHost, type AiProviderRequestPolicyInput } from "../host.j
 export function buildGuardedModelFetch(
   model: Model,
   timeoutMs?: number,
-  options?: { sanitizeSse?: boolean; onRequest?: (url: string) => void },
+  options?: { sanitizeSse?: boolean },
 ): typeof fetch {
   const host = getAiTransportHost();
   if (options !== undefined) {
-    const guardedFetch = host.buildModelFetch(model, timeoutMs, options);
-    if (guardedFetch) {
-      return guardedFetch;
-    }
-    return options.onRequest
-      ? (input, init) => {
-          options.onRequest?.(input instanceof Request ? input.url : String(input));
-          return globalThis.fetch(input, init);
-        }
-      : globalThis.fetch;
+    return host.buildModelFetch(model, timeoutMs, options) ?? globalThis.fetch;
   }
   if (timeoutMs !== undefined) {
     return host.buildModelFetch(model, timeoutMs) ?? globalThis.fetch;

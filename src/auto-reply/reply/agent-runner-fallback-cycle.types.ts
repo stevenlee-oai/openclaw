@@ -1,7 +1,6 @@
 import type { PreparedAgentRunAdmission } from "../../agents/admitted-run-context.js";
 import type { BootstrapContextRunKind } from "../../agents/bootstrap-mode.js";
 import type { DeferredEmbeddedRunLifecycleManager } from "../../agents/embedded-agent-runner/run/deferred-lifecycle-owner.js";
-import type { RunEmbeddedAgentInternalParams } from "../../agents/embedded-agent-runner/run/internal-params.js";
 import type { RunEmbeddedAgentParams } from "../../agents/embedded-agent-runner/run/params.js";
 import type { FastModeAutoProgressState } from "../../agents/fast-mode.js";
 import type { ContextEngineLogicalTurnLease } from "../../agents/harness/context-engine-logical-turn.js";
@@ -42,7 +41,6 @@ export type AgentFallbackCandidateCommonParams = {
   userTurnTranscriptRecorder: RunEmbeddedAgentParams["userTurnTranscriptRecorder"];
   contextEngineLogicalTurnLease: ContextEngineLogicalTurnLease;
   onContextEngineTurnCandidate: RunEmbeddedAgentParams["onContextEngineTurnCandidate"];
-  onModelRequestObserved?: RunEmbeddedAgentInternalParams["onModelRequestObserved"];
   assistantErrorTranscript: RunEmbeddedAgentParams["assistantErrorTranscript"];
   authProfileFailurePolicy: RunEmbeddedAgentParams["authProfileFailurePolicy"];
   notifyUserMessagePersisted: () => void;
@@ -63,7 +61,6 @@ export type AgentFallbackCandidateCommonParams = {
 };
 
 export type AgentFallbackCycleState = {
-  lastModelRequest?: SessionEntry["lastModelRequest"];
   maintenanceAuthProfile?: CompletedAgentAuthSelection;
   compactionRequestBudget?: CompactionRequestBudget;
   deferredLifecycle: DeferredEmbeddedRunLifecycleManager;

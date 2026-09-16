@@ -782,7 +782,7 @@ function swapSecretSentinelsForEgress(params: { url: string; headers?: HeadersIn
 export function buildGuardedModelFetch(
   model: Model,
   timeoutMs?: number,
-  options?: { sanitizeSse?: boolean; onRequest?: (url: string) => void },
+  options?: { sanitizeSse?: boolean },
 ): typeof fetch {
   const requestConfig = resolveModelRequestPolicy(model);
   const dispatcherPolicy = buildProviderRequestDispatcherPolicy(requestConfig);
@@ -823,18 +823,6 @@ export function buildGuardedModelFetch(
       headers: rawHeaders,
     });
     const url = swappedEgress.url;
-    let onRequest = options?.onRequest;
-    if (onRequest) {
-      try {
-        // Even short secrets omitted by the redaction registry can become hostnames.
-        // Keep this request and its redirects unobserved instead of retaining those bytes.
-        if (containsSecretSentinel(new URL(rawUrl).hostname)) {
-          onRequest = undefined;
-        }
-      } catch {
-        onRequest = undefined;
-      }
-    }
     const policy = resolveProviderTransportSsrFPolicy({
       baseUrl: model.baseUrl,
       url,
@@ -860,15 +848,6 @@ export function buildGuardedModelFetch(
     const localServiceSignal = buildModelRequestSignal(baseSignal, requestTimeoutMs);
     const guardedFetchOptions = {
       url,
-      ...(onRequest
-        ? {
-            beforeRequest: (requestUrl?: string) => {
-              if (requestUrl !== undefined) {
-                onRequest?.(requestUrl);
-              }
-            },
-          }
-        : {}),
       init: baseInit,
       capture: {
         meta: {

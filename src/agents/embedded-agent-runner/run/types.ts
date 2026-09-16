@@ -6,7 +6,6 @@ import type { HeartbeatToolResponse } from "../../../auto-reply/heartbeat-tool-r
 import type { ThinkLevel } from "../../../auto-reply/thinking.js";
 import type {
   SessionContextBudgetStatus,
-  SessionModelRequest,
   SessionSystemPromptReport,
 } from "../../../config/sessions/types.js";
 import type { ContextEngine, ContextEnginePromptCacheInfo } from "../../../context-engine/types.js";
@@ -138,12 +137,6 @@ export type EmbeddedRunAttemptTrajectoryRecorder = {
 };
 
 export type EmbeddedRunAttemptParams = EmbeddedRunAttemptBase & {
-  /** Diagnostic only. The host sanitizes the upstream URL before retaining it. */
-  onModelRequest?: (request: {
-    url: string;
-    transport: "http" | "websocket";
-    model?: string;
-  }) => void;
   admittedRunContext: NonNullable<RunEmbeddedAgentParams["admittedRunContext"]>;
   /**
    * Run-owned start timestamp captured by the embedded-run orchestrator before
@@ -300,7 +293,6 @@ export type EmbeddedRunAttemptResult = {
   agentHarnessId?: string;
   /** Current physical model attempt; replaced from the prepared runtime plan at the boundary. */
   modelAttempt?: AgentRuntimeModelAttempt;
-  lastModelRequest?: SessionModelRequest;
   /** Native owner's selected tuple, distinct from response/billing model attribution. */
   runtimeModelSelection?: ModelRef;
   /** Exact credential material fingerprint reported by a harness-owned auth boundary. */

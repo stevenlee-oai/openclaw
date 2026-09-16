@@ -103,13 +103,7 @@ export async function createCodexInferenceProxy(params: {
   const prepare = (bytes: Buffer, sampling: boolean) => {
     assertCurrent();
     if (!sampling) {
-      return {
-        bytes,
-        assertCurrent,
-        signal: undefined,
-        body: undefined,
-        onModelRequest: undefined,
-      };
+      return { bytes, assertCurrent, signal: undefined };
     }
     const value: unknown = JSON.parse(bytes.toString("utf8"));
     if (!isJsonObject(value)) {
@@ -180,14 +174,7 @@ export async function createCodexInferenceProxy(params: {
             signal,
             // Refresh and DNS/proxy preparation both await. Recheck the admitted
             // turn and current persisted grant immediately before physical I/O.
-            beforeRequest: () => {
-              assertAuthorized();
-              prepared.onModelRequest?.({
-                url: target.href,
-                transport: "http",
-                ...(typeof prepared.body?.model === "string" ? { model: prepared.body.model } : {}),
-              });
-            },
+            beforeRequest: assertAuthorized,
             requireHttps: true,
             maxRedirects: 0,
             capture: false,
@@ -349,15 +336,6 @@ export async function createCodexInferenceProxy(params: {
                     remote.bufferedAmount + prepared.bytes.length > MAX_BODY_BYTES
                   ) {
                     throw new Error(FAILURE);
-                  }
-                  if (prepared.body?.type === "response.create") {
-                    prepared.onModelRequest?.({
-                      url: target.href,
-                      transport: "websocket",
-                      ...(typeof prepared.body.model === "string"
-                        ? { model: prepared.body.model }
-                        : {}),
-                    });
                   }
                   remote.send(prepared.bytes, { binary: false }, (error) => {
                     if (error) {

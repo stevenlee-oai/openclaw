@@ -39,7 +39,6 @@ type AbortedAgentTurn = {
   kind: "aborted";
   reason: "user" | "restart" | "superseded";
   compaction?: AgentTurnCompaction;
-  lastModelRequest?: SessionEntry["lastModelRequest"];
 };
 
 /** Internal fallback-cycle result before caller-facing settlement projection. */
@@ -50,7 +49,6 @@ export type AgentTurnInternalResult =
       maintenanceAuthProfile?: CompletedAgentAuthSelection;
       compactionRequestBudget?: CompactionRequestBudget;
       result: Awaited<ReturnType<typeof runEmbeddedAgent>>;
-      lastModelRequest?: SessionEntry["lastModelRequest"];
       fallbackProvider?: string;
       fallbackModel?: string;
       fallbackExhausted?: true;
@@ -67,7 +65,6 @@ export type AgentTurnInternalResult =
     }
   | {
       kind: "final";
-      lastModelRequest?: SessionEntry["lastModelRequest"];
       payload: ReplyPayload;
       resolved?: { provider: string; model: string };
       postCompactionModelFailure?: true;
@@ -78,7 +75,6 @@ type SettledAgentTurnBase = {
   maintenanceAuthProfile?: CompletedAgentAuthSelection;
   compactionRequestBudget?: CompactionRequestBudget;
   result: Awaited<ReturnType<typeof runEmbeddedAgent>>;
-  lastModelRequest?: SessionEntry["lastModelRequest"];
   resolved: { provider: string; model: string };
   fallback: { exhausted: boolean; attempts: RuntimeFallbackAttempt[] };
   autoCompactionCount: number;
@@ -110,7 +106,6 @@ export type AgentTurnExecutionResult = {
     | AbortedAgentTurn
     | {
         kind: "rejected";
-        lastModelRequest?: SessionEntry["lastModelRequest"];
         compaction?: AgentTurnCompaction;
         payload: ReplyPayload;
         resolved?: { provider: string; model: string };

@@ -177,7 +177,6 @@ export async function prepareTerminalWithSettledTurnFinalization(input: {
         prompt,
         createAttemptControls: input.finalization.createAttemptControls,
         abortSignal: input.finalization.abortSignal,
-        onModelRequestObserved: runParams.onModelRequestObserved,
       });
       assertFinalizationActive();
       attempt = finalization.attempt;
@@ -390,7 +389,6 @@ async function runPreparedSettledTurnFinalization(input: {
   prompt: string;
   createAttemptControls: CreateAttemptControls;
   abortSignal: AbortSignal;
-  onModelRequestObserved?: Parameters<typeof runEmbeddedSettledTurnFinalizationWithBackend>[3];
 }): Promise<{ outcome: "answered" | "empty"; attempt: EmbeddedRunAttemptWithReceiptEvidence }> {
   // The original attempt is closed. Each tool-free retry owns its own deadline
   // and Stop callbacks, while queue cancellation remains authoritative throughout.
@@ -428,7 +426,6 @@ async function runPreparedSettledTurnFinalization(input: {
         },
         input.settledAttempt,
         input.harness,
-        input.onModelRequestObserved,
       ),
     );
     return {
@@ -440,7 +437,6 @@ async function runPreparedSettledTurnFinalization(input: {
         prompt: input.prompt,
         agentHarnessId: input.attempt.agentHarnessId,
         runtimePlan: input.attempt.runtimePlan,
-        lastModelRequest: finalization.lastModelRequest,
       }),
     };
   } finally {
@@ -455,7 +451,6 @@ function buildSettledTurnFinalizationAttemptResult(input: {
   prompt: string;
   agentHarnessId?: string;
   runtimePlan?: EmbeddedRunAttemptParams["runtimePlan"];
-  lastModelRequest?: EmbeddedRunAttemptWithReceiptEvidence["lastModelRequest"];
 }): EmbeddedRunAttemptWithReceiptEvidence {
   const { result, settledAttempt } = input;
   const authoredText = resolveFinalAssistantVisibleText(result.assistant) ?? "";
@@ -474,7 +469,6 @@ function buildSettledTurnFinalizationAttemptResult(input: {
     sessionFileUsed: settledAttempt.sessionFileUsed,
     ...(input.agentHarnessId ? { agentHarnessId: input.agentHarnessId } : {}),
     modelAttempt: resolveRuntimeModelAttempt(input.runtimePlan),
-    lastModelRequest: input.lastModelRequest ?? settledAttempt.lastModelRequest,
     ...(settledAttempt.runtimeModelSelection
       ? { runtimeModelSelection: settledAttempt.runtimeModelSelection }
       : {}),
@@ -554,7 +548,6 @@ function buildSettledToolFallbackAttemptResult(input: {
     prompt: input.prompt,
     agentHarnessId: input.agentHarnessId,
     runtimePlan: input.runtimePlan,
-    lastModelRequest: input.sourceAttempt.lastModelRequest,
   });
 }
 

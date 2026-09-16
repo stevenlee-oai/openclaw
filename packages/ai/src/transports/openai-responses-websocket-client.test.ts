@@ -16,10 +16,6 @@ import { withPluginRuntimeGenerationScope } from "../../../../src/plugins/runtim
 import { configureAiTransportHost, getAiTransportHost } from "../host.js";
 import { cleanupSessionResources } from "../session-resources.js";
 import {
-  withModelRequestObserver,
-  type ModelRequestObservation,
-} from "./model-request-observer.js";
-import {
   OpenAIResponsesWebSocketSafeRetryError,
   responsesPromptObserver,
   type ResponsesPromptObservation,
@@ -83,7 +79,6 @@ vi.mock("openai", () => {
 
 vi.mock("openai/resources/responses/ws.js", () => ({
   ResponsesWS: class MockResponsesWS {
-    url = new URL("wss://api.openai.com/v1/responses");
     socket = { readyState: 1 };
     private responseMessages: StreamMessage[] = [];
 
@@ -285,7 +280,6 @@ async function run(
     observations?: ResponsesPromptObservation[];
     onCompactionRejected?: () => void;
     acceptanceObserver?: (acceptance: ProviderAcceptance) => void;
-    requestObserver?: (request: ModelRequestObservation) => void;
   } = {},
 ): Promise<AssistantMessage> {
   const options = {
@@ -300,9 +294,6 @@ async function run(
   };
   if (overrides.acceptanceObserver) {
     withProviderAcceptanceObserver(options, overrides.acceptanceObserver);
-  }
-  if (overrides.requestObserver) {
-    withModelRequestObserver(options, overrides.requestObserver);
   }
   if (overrides.observations) {
     responsesPromptObserver.set(options, (observation) =>
@@ -365,43 +356,6 @@ describe("native OpenAI Responses WebSocket client integration", () => {
   afterEach(() => {
     cleanupSessionResources();
     configureAiTransportHost(initialHost);
-  });
-
-  it("reports each dispatched frame to its current caller on a reused socket", async () => {
-    const firstObserver = vi.fn();
-    const secondObserver = vi.fn();
-    const context = { messages: [userMessage("hello", 1)], tools: [] };
-    transportState.responseBatches.push([message(completedEvent("resp_first", "one"))]);
-    expect((await run(context, { requestObserver: firstObserver })).stopReason).toBe("stop");
-    transportState.responseBatches.push([message(completedEvent("resp_second", "two"))]);
-    expect((await run(context, { requestObserver: secondObserver })).stopReason).toBe("stop");
-
-    expect(transportState.websocketClients).toHaveLength(1);
-    for (const observer of [firstObserver, secondObserver]) {
-      expect(observer).toHaveBeenCalledExactlyOnceWith({
-        url: "wss://api.openai.com/v1/responses",
-        transport: "websocket",
-        model: model.id,
-      });
-    }
-  });
-
-  it("does not report a request for a failed WebSocket handshake", async () => {
-    const requestObserver = vi.fn();
-    transportState.handshakeMessages.push({ type: "error", error: new Error("handshake failed") });
-    expect(
-      (
-        await run(
-          { messages: [userMessage("hello", 1)] },
-          {
-            requestObserver,
-            transport: "websocket",
-          },
-        )
-      ).stopReason,
-    ).toBe("error");
-    expect(requestObserver).not.toHaveBeenCalled();
-    expect(transportState.websocketRequests).toHaveLength(0);
   });
 
   it.each([undefined, "short", "none"] as const)(

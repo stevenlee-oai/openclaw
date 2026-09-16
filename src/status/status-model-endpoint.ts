@@ -15,7 +15,7 @@ const DISPLAYABLE_ENDPOINT_PATHS = new Set([
   "/v1/chat/completions",
 ]);
 
-/** Bounded endpoint display for session metadata; never retains URL credentials or custom paths. */
+/** Bounded endpoint display for status; never retains URL credentials or custom paths. */
 export function formatModelEndpointUrl(rawUrl: string): string | undefined {
   if (rawUrl.length > 8192) {
     return undefined;

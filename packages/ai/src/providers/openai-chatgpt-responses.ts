@@ -16,7 +16,6 @@ import { getEnvApiKey } from "../env-api-keys.js";
 import { getAiTransportHost, resolveAiTransportHeaderSentinels } from "../host.js";
 import type { BaseOpenAIStreamOptions } from "../provider-options.js";
 import { registerSessionResourceCleanup } from "../session-resources.js";
-import { notifyModelRequest } from "../transports/model-request-observer.js";
 import {
   buildOpenAIResponsesReasoningReplayMetadata,
   suppressOpenAIResponsesCompaction,
@@ -463,13 +462,7 @@ export const streamOpenAICodexResponses: StreamFunction<
 
         let attemptResponse: Response;
         try {
-          const url = resolveCodexUrl(model.baseUrl);
-          notifyModelRequest(options, {
-            url,
-            transport: "http",
-            model: activeAttempt.request.model,
-          });
-          attemptResponse = await fetch(url, {
+          attemptResponse = await fetch(resolveCodexUrl(model.baseUrl), {
             method: "POST",
             headers: sseHeaders,
             body: sseBody,
@@ -1566,7 +1559,6 @@ async function processWebSocketStream(
       egress: "native-codex-websocket",
       payloadVariant,
     });
-    notifyModelRequest(options, { url, transport: "websocket", model: requestBody.model });
     socket.send(JSON.stringify({ type: "response.create", ...requestBody }));
     onRequestSent?.();
     await processResponsesStream(

@@ -6,7 +6,6 @@ export * from "./transports/deepseek-text-filter.js";
 export * from "./transports/google-thinking-level.js";
 export * from "./transports/json-unsafe-integers.js";
 export * from "./transports/model-max-tokens-params.js";
-export { withModelRequestObserver } from "./transports/model-request-observer.js";
 export * from "./transports/model-transport-debug.js";
 export * from "./transports/model-transport-url.js";
 export * from "./transports/openai-compatible-conversation-turn.js";

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { EmbeddedRunAttemptParamsV2 } from "openclaw/plugin-sdk/agent-harness-runtime";
 import { isJsonObject, type JsonObject } from "./protocol.js";
 
 const MAX_CONTEXT_BYTES = 256 * 1024;
@@ -12,7 +11,6 @@ type Registration = {
   controller: AbortController;
   assertCurrent: () => void;
   release: () => void;
-  onModelRequest?: EmbeddedRunAttemptParamsV2["onModelRequest"];
 };
 
 /** One physical inference transport owns these confidential, nonpersistent snapshots. */
@@ -31,7 +29,6 @@ export function createCodexInferenceContext(assertClientCurrent: () => void) {
       text: string;
       signal: AbortSignal;
       assertCurrent: () => void;
-      onModelRequest?: EmbeddedRunAttemptParamsV2["onModelRequest"];
     }) {
       assertOpen();
       params.signal.throwIfAborted();
@@ -48,12 +45,6 @@ export function createCodexInferenceContext(assertClientCurrent: () => void) {
         generation: randomUUID(),
         text: params.text,
         controller,
-        onModelRequest: params.onModelRequest
-          ? (request) => {
-              registration.assertCurrent();
-              params.onModelRequest?.(request);
-            }
-          : undefined,
         assertCurrent: () => {
           assertOpen();
           controller.signal.throwIfAborted();
@@ -77,15 +68,7 @@ export function createCodexInferenceContext(assertClientCurrent: () => void) {
       return { generation: registration.generation, release: registration.release };
     },
     /** Caller must authenticate its private transport before parsing any model request. */
-    prepare(
-      body: JsonObject,
-      requireAdmission = false,
-    ): {
-      body: JsonObject;
-      assertCurrent: () => void;
-      signal: AbortSignal | undefined;
-      onModelRequest?: EmbeddedRunAttemptParamsV2["onModelRequest"];
-    } {
+    prepare(body: JsonObject, requireAdmission = false) {
       assertOpen();
       const metadata = isJsonObject(body.client_metadata) ? body.client_metadata : undefined;
       const raw = metadata?.["x-codex-turn-metadata"];
@@ -157,8 +140,6 @@ export function createCodexInferenceContext(assertClientCurrent: () => void) {
           : body,
         assertCurrent: registration.assertCurrent,
         signal: registration.controller.signal,
-        // Auxiliary native work must not overwrite the admitted user turn's last request.
-        onModelRequest: kind === "turn" ? registration.onModelRequest : undefined,
       };
     },
     close() {

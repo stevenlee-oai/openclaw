@@ -1,7 +1,6 @@
 import { afterEach, assert, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../../../test/helpers/promise.js";
 import type { Context, Model, StreamOptions } from "../types.js";
-import { withModelRequestObserver } from "./model-request-observer.js";
 
 type WireEvent =
   | { type: "open" }
@@ -21,7 +20,6 @@ const sockets = vi.hoisted(() => ({
 
 vi.mock("openai/resources/responses/ws.js", () => ({
   ResponsesWS: class {
-    url = new URL("wss://api.openai.com/v1/responses");
     socket = { readyState: 1 };
     requests: Record<string, unknown>[] = [];
     closed = false;
@@ -253,15 +251,11 @@ describe("Responses WebSocket steering handoff", () => {
     };
     const ready = createDeferred<Parameters<NonNullable<StreamOptions["onActiveResponse"]>>[0]>();
     const stream = createOpenAIResponsesTransportStreamFn();
-    const requestObserver = vi.fn();
-    const options = withModelRequestObserver(
-      {
-        apiKey: "test-key",
-        sessionId: "runtime-context-steering",
-        transport: "websocket-cached" as const,
-      },
-      requestObserver,
-    );
+    const options = {
+      apiKey: "test-key",
+      sessionId: "runtime-context-steering",
+      transport: "websocket-cached" as const,
+    };
     const first = (
       await stream(model, context, {
         ...options,
@@ -295,11 +289,6 @@ describe("Responses WebSocket steering handoff", () => {
     expect(second.stopReason).not.toBe("error");
     expect(second.content).toMatchObject([{ type: "text", text: "steered answer" }]);
     expect(socket.requests.filter((request) => request.type === "response.create")).toHaveLength(1);
-    expect(requestObserver).toHaveBeenCalledExactlyOnceWith({
-      url: "wss://api.openai.com/v1/responses",
-      transport: "websocket",
-      model: model.id,
-    });
     expect(socket.streamCalls).toBe(1);
   });
 

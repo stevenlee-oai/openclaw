@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { registerSecretValueForRedaction } from "../logging/secret-redaction-registry.js";
 import { resetSecretRedactionRegistryForTest } from "../logging/secret-redaction-registry.test-support.js";
 import { sealSecretSentinel } from "../secrets/sentinel.js";
-import { formatModelEndpointUrl } from "./model-endpoint.js";
+import { formatModelEndpointUrl } from "./status-model-endpoint.js";
 
 describe("model endpoint display", () => {
   afterEach(() => {

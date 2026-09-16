@@ -367,13 +367,6 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
   );
 
   it("preserves runtime context and model selection through isolated finalization", async () => {
-    const lastModelRequest = {
-      provider: "host-finalizer",
-      model: "summary-model",
-      endpoint: "https://api.openai.com/v1/responses",
-      transport: "http" as const,
-      timestamp: 1000,
-    };
     const runtimeModelSelection = { provider: "openai", model: "native-selected-model" };
     const attempt = {
       ...settledFailedAttempt(),
@@ -396,7 +389,6 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
     });
     backendMocks.runSettledFinalization.mockResolvedValueOnce({
       outcome: "answered",
-      lastModelRequest,
       result: {
         assistant: finalAssistant,
         usage: finalAssistant.usage,
@@ -407,7 +399,6 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
     const result = await prepareTerminalWithSettledTurnFinalization(input);
 
     expect(result.attempt).toMatchObject({
-      lastModelRequest,
       agentHarnessId: "codex",
       runtimeModelSelection,
       modelAttempt: {
@@ -419,7 +410,6 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
       contextTokensSource: "runtime",
     });
     expect(result.prepared.agentMeta).toMatchObject({
-      lastModelRequest,
       agentHarnessId: "codex",
       provider: "host-finalizer",
       model: "summary-model",
@@ -472,8 +462,8 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
 
     expect(factory).toHaveBeenCalledTimes(2);
     expect(backendMocks.runSettledFinalization.mock.calls).toEqual([
-      [expect.objectContaining({ disableTools: true }), attempt, expect.anything(), undefined],
-      [expect.objectContaining({ disableTools: true }), attempt, expect.anything(), undefined],
+      [expect.objectContaining({ disableTools: true }), attempt, expect.anything()],
+      [expect.objectContaining({ disableTools: true }), attempt, expect.anything()],
     ]);
     expect(result.finalizationOutcome).toBe("answered");
     expect(result.prepared.payloadsWithToolMedia).toEqual([
@@ -978,7 +968,6 @@ describe("prepareTerminalWithSettledTurnFinalization", () => {
       }),
       attempt,
       input.finalization.harness,
-      undefined,
     );
     expect(transcriptMocks.appendAssistantMirrorMessageByIdentity).toHaveBeenCalledWith(
       expect.objectContaining({

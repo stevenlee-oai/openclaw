@@ -74,6 +74,7 @@ import {
 import { resolveRuntimeServiceCommit, VERSION } from "../version.js";
 import { resolveAgentRuntimeLabel } from "./agent-runtime-label.js";
 import { resolveActiveFallbackState } from "./fallback-notice-state.js";
+import { formatModelEndpointUrl } from "./status-model-endpoint.js";
 
 type AgentDefaults = NonNullable<NonNullable<OpenClawConfig["agents"]>["defaults"]>;
 type AgentConfig = Partial<AgentDefaults> & {
@@ -113,6 +114,7 @@ type StatusArgs = {
   resolvedReasoning?: ReasoningLevel;
   resolvedElevated?: ElevatedLevel;
   modelAuth?: string;
+  selectedEndpoint?: string;
   activeModelAuth?: string;
   activeModel?: { modelProvider: string; model: string };
   usageLine?: string;
@@ -969,6 +971,9 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     `🧠 Model: ${selectedModelLabel}${modelNote}${overrideLabel}${liveSwitchNote}`,
   ];
 
+  const selectedEndpoint = args.selectedEndpoint
+    ? formatModelEndpointUrl(args.selectedEndpoint)
+    : undefined;
   // Show configured fallback models (from agent model config)
   const configuredFallbacks = (() => {
     const modelConfig = args.agent?.model;
@@ -1021,6 +1026,7 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     [versionLine, timeLine, uptimeLine],
     [
       ...modelLines,
+      `🌐 Endpoint: ${selectedEndpoint ?? "unknown"}`,
       selectedAuthLabelValue ? `🔑 Auth: ${selectedAuthLabelValue}` : null,
       configuredFallbacksLine,
       fallbackLine,
@@ -1061,6 +1067,7 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     }
   };
   pushStatusRow("🧠 Model", `${selectedModelLabel}${modelNote}${overrideLabel}${liveSwitchNote}`);
+  pushStatusRow("🌐 Endpoint", selectedEndpoint ?? "unknown");
   pushStatusRow("🔑 Auth", selectedAuthLabelValue);
   pushStatusRow("🔄 Fallbacks", configuredFallbacks?.join(", "));
   pushStatusRow("↪️ Fallback", fallbackValue);

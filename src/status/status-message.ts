@@ -1026,7 +1026,7 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     [versionLine, timeLine, uptimeLine],
     [
       ...modelLines,
-      `🌐 Planned endpoint: ${selectedEndpoint ?? "unknown"}`,
+      `🌐 Endpoint: ${selectedEndpoint ?? "unknown"}`,
       selectedAuthLabelValue ? `🔑 Auth: ${selectedAuthLabelValue}` : null,
       configuredFallbacksLine,
       fallbackLine,
@@ -1067,7 +1067,7 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     }
   };
   pushStatusRow("🧠 Model", `${selectedModelLabel}${modelNote}${overrideLabel}${liveSwitchNote}`);
-  pushStatusRow("🌐 Planned endpoint", selectedEndpoint ?? "unknown");
+  pushStatusRow("🌐 Endpoint", selectedEndpoint ?? "unknown");
   pushStatusRow("🔑 Auth", selectedAuthLabelValue);
   pushStatusRow("🔄 Fallbacks", configuredFallbacks?.join(", "));
   pushStatusRow("↪️ Fallback", fallbackValue);

@@ -132,7 +132,7 @@ describe("buildStatusMessageParts presentation", () => {
     expect(parts.presentation.blocks.some((block) => block.type === "text")).toBe(false);
   });
 
-  it("shows the sanitized planned endpoint in text and tables", () => {
+  it("shows the sanitized endpoint in text and tables", () => {
     const parts = buildStatusMessageParts({
       modelRefs: statusModelRefs({ provider: "openai", model: "selected-model" }),
       agent: { model: "openai/selected-model" },
@@ -140,8 +140,8 @@ describe("buildStatusMessageParts presentation", () => {
     });
     const table = parts.presentation.blocks.find((block) => block.type === "table");
     const rows = new Map(table?.type === "table" ? table.rows.map((row) => [row[0], row[1]]) : []);
-    expect(parts.text).toContain("Planned endpoint: https://api.openai.com/v1");
-    expect(rows.get("🌐 Planned endpoint")).toBe("https://api.openai.com/v1");
+    expect(parts.text).toContain("Endpoint: https://api.openai.com/v1");
+    expect(rows.get("🌐 Endpoint")).toBe("https://api.openai.com/v1");
     expect(JSON.stringify(parts)).not.toMatch(/secret|private|user:/);
   });
 
@@ -151,7 +151,7 @@ describe("buildStatusMessageParts presentation", () => {
       agent: { model: "openai/selected-model" },
       modelAuth: "oauth (codex)",
     });
-    expect(parts.text).toContain("Planned endpoint: unknown");
+    expect(parts.text).toContain("Endpoint: unknown");
     expect(JSON.stringify(parts)).not.toContain("https://");
   });
 

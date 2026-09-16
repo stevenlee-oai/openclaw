@@ -307,14 +307,13 @@ export async function runPreparedEmbeddedLoop(
             `provider=${provider}/${modelId} attempts=${runRetryBudget.attemptsDispatched} ` +
             `countedAttempts=${runRetryBudget.attemptsCounted} maxAttempts=${runRetryBudget.maxAttempts}`,
         );
-        const retryLimitDecision = resolveRunFailoverDecision({
-          stage: "retry_limit",
-          fallbackConfigured,
-          failoverReason: lastRetryFailoverReason,
-        });
         return handleRetryLimitExhaustion({
           message,
-          decision: retryLimitDecision,
+          decision: resolveRunFailoverDecision({
+            stage: "retry_limit",
+            fallbackConfigured,
+            failoverReason: lastRetryFailoverReason,
+          }),
           provider,
           model: modelId,
           profileId: lastProfileId,
@@ -323,6 +322,7 @@ export async function runPreparedEmbeddedLoop(
             sessionId: sessionPromptState.sessionId,
             sessionFile: sessionPromptState.sessionFile,
             ...(attemptCarryover.modelAttempt ?? { provider, model: model.id }),
+            lastModelRequest: attemptCarryover.lastModelRequest,
             ...outerContextTokenMeta,
             usageAccumulator,
             lastRunPromptUsage,

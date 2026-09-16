@@ -5,6 +5,7 @@ import {
   markCoreTtsAttemptResult,
 } from "../../tools/tts-tool-result-provenance.js";
 import { runEmbeddedAttemptWithBackend } from "./backend.js";
+import type { EmbeddedRunAttemptParams } from "./types.js";
 
 const harnessMocks = vi.hoisted(() => ({
   runAttempt: vi.fn(),
@@ -24,6 +25,79 @@ describe("embedded attempt backend", () => {
   beforeEach(() => {
     harnessMocks.runAttempt.mockReset();
     harnessMocks.settleRequester.mockReset();
+  });
+
+  it("retains the latest sanitized dispatch and ignores callbacks after settlement", async () => {
+    let report: EmbeddedRunAttemptParams["onModelRequest"];
+    const observed = vi.fn(() => {
+      throw new Error("diagnostic sink failed");
+    });
+    harnessMocks.runAttempt.mockImplementationOnce(async (params: EmbeddedRunAttemptParams) => {
+      report = params.onModelRequest;
+      report?.({ url: "https://example.test/private-key/responses?key=secret", transport: "http" });
+      report?.({
+        url: "wss://chatgpt.com/backend-api/codex/responses?secret=hidden",
+        transport: "websocket",
+        model: "wire-model",
+      });
+      return makeEmbeddedRunnerAttempt({});
+    });
+    const result = await runEmbeddedAttemptWithBackend(
+      {
+        provider: "openai",
+        model: { id: "selected-model" },
+      } as EmbeddedRunAttemptParams,
+      undefined,
+      observed,
+    );
+    expect(result.lastModelRequest).toEqual({
+      provider: "openai",
+      model: "wire-model",
+      endpoint: "wss://chatgpt.com/backend-api/codex/responses",
+      transport: "websocket",
+      timestamp: expect.any(Number),
+    });
+    report?.({ url: "https://other.test/v1/responses", transport: "http" });
+    expect(result.lastModelRequest?.endpoint).toBe("wss://chatgpt.com/backend-api/codex/responses");
+    expect(JSON.stringify(result.lastModelRequest)).not.toContain("secret");
+    expect(observed).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not mistake a prepared route or retained harness result for a dispatched request", async () => {
+    harnessMocks.runAttempt.mockResolvedValueOnce({
+      ...makeEmbeddedRunnerAttempt({}),
+      lastModelRequest: { endpoint: "https://stale.test/private-key" },
+    });
+    const result = await runEmbeddedAttemptWithBackend({
+      provider: "openai",
+      model: { id: "selected-model", baseUrl: "https://api.openai.com/v1" },
+    } as EmbeddedRunAttemptParams);
+    expect(result.lastModelRequest).toBeUndefined();
+  });
+
+  it("reports a dispatched request even when the harness throws", async () => {
+    const observed = vi.fn();
+    harnessMocks.runAttempt.mockImplementationOnce(async (params: EmbeddedRunAttemptParams) => {
+      params.onModelRequest?.({ url: "https://api.openai.com/v1/responses", transport: "http" });
+      throw new Error("upstream failed");
+    });
+    await expect(
+      runEmbeddedAttemptWithBackend(
+        {
+          provider: "openai",
+          model: { id: "selected-model" },
+        } as EmbeddedRunAttemptParams,
+        undefined,
+        observed,
+      ),
+    ).rejects.toThrow("upstream failed");
+    expect(observed).toHaveBeenCalledExactlyOnceWith({
+      provider: "openai",
+      model: "selected-model",
+      endpoint: "https://api.openai.com/v1/responses",
+      transport: "http",
+      timestamp: expect.any(Number),
+    });
   });
 
   it.each([

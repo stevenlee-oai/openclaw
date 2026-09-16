@@ -255,6 +255,7 @@ export async function finalizeEmbeddedAgentCommand(params: {
         fallbackModel,
         result,
         compactionAccounting: compactionFact,
+        lastModelRequest: params.attempt.lastModelRequest,
         touchInteraction:
           params.opts.bootstrapContextRunKind !== "cron" &&
           !isHeartbeatLifecycleRun &&

@@ -48,6 +48,7 @@ export async function updateSessionStoreAfterAgentRun(params: {
   fallbackProvider?: string;
   fallbackModel?: string;
   result: RunResult;
+  lastModelRequest?: SessionEntry["lastModelRequest"];
   /** Private committed owner and ordered context; an unknown snapshot invalidates older usage. */
   compactionAccounting?: Extract<CompactionAccountingFact, { kind: "durable" }>;
   touchInteraction?: boolean;
@@ -156,6 +157,13 @@ export async function updateSessionStoreAfterAgentRun(params: {
     });
   }
   if (!preserveUserFacingRunState) {
+    const request = params.lastModelRequest ?? result.meta.agentMeta?.lastModelRequest;
+    if (
+      request &&
+      (!entry.lastModelRequest || request.timestamp >= entry.lastModelRequest.timestamp)
+    ) {
+      next.lastModelRequest = request;
+    }
     if (!preserveRuntimeModel) {
       next.agentHarnessId = agentHarnessId;
     }

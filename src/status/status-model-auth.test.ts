@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreparedAgentCredentialMode } from "../agents/agent-auth-credential-modes.js";
+import type { AuthProfileStore } from "../agents/auth-profiles/types.js";
 import { dualRoutes } from "../agents/model-auth-availability.test-support.js";
 import * as openaiRoutes from "../agents/openai-model-routes.js";
 import { setPreparedModelRuntimeAuthStore } from "../agents/prepared-model-runtime-auth.js";
@@ -8,7 +9,7 @@ import type { SessionEntry } from "../config/sessions.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import { createPluginMetadataSnapshotFixture } from "../plugins/plugin-metadata.test-support.js";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
-import { createStatusModelAuthResolver } from "./status-model-auth.js";
+import { createStatusModelResolver } from "./status-model-auth.js";
 
 const cfg: OpenClawConfig = {
   plugins: { entries: { codex: { enabled: true } } },
@@ -27,6 +28,7 @@ function statusAuth(
     sessionEntry?: SessionEntry;
     config?: OpenClawConfig;
     nativeDiscovery?: { accountType: string; authMode?: string };
+    profiles?: AuthProfileStore["profiles"];
   } = {},
 ) {
   const config = options.config ?? cfg;
@@ -75,8 +77,8 @@ function statusAuth(
       throw new Error("Status must not execute a model");
     },
   };
-  setPreparedModelRuntimeAuthStore(owner, { version: 1, profiles: {} });
-  return createStatusModelAuthResolver({
+  setPreparedModelRuntimeAuthStore(owner, { version: 1, profiles: options.profiles ?? {} });
+  return createStatusModelResolver({
     cfg: config,
     agentId: "main",
     agentDir: owner.agentDir,
@@ -87,22 +89,60 @@ function statusAuth(
 }
 
 describe("native status authentication", () => {
-  beforeEach(() => vi.spyOn(openaiRoutes, "resolveOpenAIModelRoutes").mockReturnValue(dualRoutes));
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    // These fixtures model an absent host credential, even on credentialed devboxes.
+    vi.stubEnv("OPENAI_API_KEY", undefined);
+    vi.spyOn(openaiRoutes, "resolveOpenAIModelRoutes").mockReturnValue(dualRoutes);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it.each([
-    ["api_key", "api-key (codex)"],
-    ["oauth", "oauth (codex)"],
-    ["token", "token (codex)"],
-  ] as const)("renders the prepared %s mode without a host credential", async (mode, label) => {
-    expect(await statusAuth({ source: "native", mode })(selection)).toBe(label);
+    ["api_key", "api-key (codex)", "https://api.openai.com/v1"],
+    ["oauth", "oauth (codex)", "https://chatgpt.com/backend-api/codex"],
+    ["token", "token (codex)", "https://chatgpt.com/backend-api/codex"],
+  ] as const)(
+    "renders the prepared %s mode and selected route without a host credential",
+    async (mode, authLabel, endpoint) => {
+      expect(await statusAuth({ source: "native", mode })(selection)).toEqual({
+        authLabel,
+        endpoint,
+      });
+    },
+  );
+
+  it("uses the built-in prepared route even when the displayed auth label is overridden", async () => {
+    const resolve = statusAuth(undefined, {
+      profiles: { "openai:test": { type: "api_key", provider: "openai", key: "synthetic-key" } },
+    });
+    expect(
+      await resolve({
+        ...selection,
+        runtimeId: "openclaw",
+        authLabelOverride: "oauth (personal account)",
+      }),
+    ).toEqual({
+      authLabel: "oauth (personal account)",
+      endpoint: "https://api.openai.com/v1",
+    });
+  });
+
+  it("does not infer a native endpoint from account discovery without a route", async () => {
+    expect(
+      await statusAuth(
+        { source: "native", mode: "oauth" },
+        { nativeDiscovery: { accountType: "chatgpt", authMode: "oauth" } },
+      )(selection),
+    ).toEqual({ authLabel: "oauth (codex)", endpoint: undefined });
   });
 
   it("does not describe an absent or retired native login as authenticated", async () => {
-    expect(await statusAuth()(selection)).toBe("unknown");
+    expect(await statusAuth()(selection)).toEqual({ authLabel: "unknown" });
     expect(
       await statusAuth({ source: "native", mode: "api_key" }, { current: () => false })(selection),
-    ).toBe("unknown");
+    ).toEqual({ authLabel: "unknown" });
   });
 
   it.each([
@@ -117,7 +157,7 @@ describe("native status authentication", () => {
           { source: "native", mode: "oauth" },
           { nativeDiscovery: { accountType, authMode } },
         )(selection),
-      ).toBe(label);
+      ).toMatchObject({ authLabel: label });
     },
   );
 
@@ -127,7 +167,7 @@ describe("native status authentication", () => {
         { source: "native", mode: "oauth" },
         { nativeDiscovery: { accountType: "chatgpt" } },
       )(selection),
-    ).toBe("native (codex)");
+    ).toEqual({ authLabel: "native (codex)", endpoint: undefined });
   });
 
   it("rejects a retired discovery observation together with its mode", async () => {
@@ -139,7 +179,7 @@ describe("native status authentication", () => {
           current: () => false,
         },
       )(selection),
-    ).toBe("unknown");
+    ).toEqual({ authLabel: "unknown" });
   });
 
   it("does not substitute native login for an unavailable explicit profile", async () => {
@@ -152,7 +192,7 @@ describe("native status authentication", () => {
     };
     expect(
       await statusAuth({ source: "native", mode: "api_key" }, { sessionEntry })(selection),
-    ).toBe("unknown");
+    ).toEqual({ authLabel: "unknown" });
   });
 
   it("respects an explicitly empty account order", async () => {
@@ -163,6 +203,6 @@ describe("native status authentication", () => {
           config: { ...cfg, auth: { order: { openai: [] } } },
         },
       )(selection),
-    ).toBe("unknown");
+    ).toEqual({ authLabel: "unknown" });
   });
 });

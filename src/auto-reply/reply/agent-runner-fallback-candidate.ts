@@ -282,6 +282,9 @@ export async function runAgentFallbackCandidates(params: AgentFallbackCycleParam
           userTurnTranscriptRecorder,
           contextEngineLogicalTurnLease: runOptions.contextEngineLogicalTurnLease,
           onContextEngineTurnCandidate: runOptions.onContextEngineTurnCandidate,
+          onModelRequestObserved: (request) => {
+            params.state.lastModelRequest = request;
+          },
           assistantErrorTranscript: runOptions.assistantErrorTranscript,
           authProfileFailurePolicy: runOptions.authProfileFailurePolicy,
           notifyUserMessagePersisted: () => {

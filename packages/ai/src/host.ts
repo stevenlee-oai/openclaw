@@ -140,7 +140,7 @@ export interface AiTransportHost {
   buildModelFetch(
     model: Model,
     timeoutMs?: number,
-    options?: { sanitizeSse?: boolean },
+    options?: { sanitizeSse?: boolean; onRequest?: (url: string) => void },
   ): typeof fetch | undefined;
   /** Resolves host-owned process-local secret sentinel substrings immediately before egress. */
   resolveSecretSentinel(value: string): string;

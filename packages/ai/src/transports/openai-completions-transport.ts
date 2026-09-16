@@ -15,6 +15,7 @@ import {
   getFirstStreamEventTimeoutMs,
 } from "../utils/stream-first-event-timeout.js";
 import { buildGuardedModelFetch } from "./host-policy.js";
+import { notifyModelRequest } from "./model-request-observer.js";
 import { hasOpenAICompatibleConversationTurn } from "./openai-compatible-conversation-turn.js";
 import { isAzureOpenAICompatibleHost } from "./openai-completions-host.js";
 import { buildOpenAICompletionsParams } from "./openai-completions-params.js";
@@ -221,7 +222,9 @@ export function createOpenAICompletionsTransportStreamFn(): StreamFn {
         // The OpenAI SDK consumes the SSE terminal without yielding it. Observe
         // the raw body so native tool calls can distinguish clean DONE from EOF.
         const doneDetector = createSseDoneDetector();
-        const baseFetch = buildGuardedModelFetch(model);
+        const baseFetch = buildGuardedModelFetch(model, undefined, {
+          onRequest: (url) => notifyModelRequest(options, { url, transport: "http" }),
+        });
         const doneDetectingFetch: typeof globalThis.fetch = async (url, init) => {
           const response = await baseFetch(url as never, init);
           if (!response.body || !response.ok) {

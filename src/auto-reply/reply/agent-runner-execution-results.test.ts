@@ -31,6 +31,50 @@ import type {
 const state = await setupAgentRunnerExecutionTestState();
 
 describe("executeAgentTurn: result and tool delivery", () => {
+  it.each(["settled", "rejected"] as const)(
+    "retains a dispatched request after a thrown primary and a %s fallback without dispatch",
+    async (kind) => {
+      const request = {
+        provider: "openai",
+        model: "gpt-5.4",
+        endpoint: "https://api.openai.com/v1/responses",
+        transport: "http" as const,
+        timestamp: 20,
+      };
+      state.runEmbeddedAgentMock
+        .mockImplementationOnce(async (params: EmbeddedAgentParams) => {
+          params.onModelRequestObserved?.(request);
+          throw new Error("primary transport failed after dispatch");
+        })
+        .mockImplementationOnce(async () => {
+          if (kind === "rejected") {
+            throw new Error("fallback credentials unavailable before dispatch");
+          }
+          return { payloads: [{ text: "local fallback result" }], meta: {} };
+        });
+      state.runWithModelFallbackMock.mockImplementationOnce(
+        async (params: FallbackRunnerParams) => {
+          await expect(
+            params.run("openai", "gpt-5.4", initialFallbackAttemptOptions(params)),
+          ).rejects.toThrow("primary transport failed after dispatch");
+          const result = await params.run(
+            "anthropic",
+            "claude",
+            initialFallbackAttemptOptions(params),
+          );
+          return { result, provider: "anthropic", model: "claude", attempts: [] };
+        },
+      );
+      const { executeAgentTurn } = await import("./agent-runner-execution.js");
+      const execution = await executeAgentTurn(createMinimalRunAgentTurnParams());
+      expect(state.runEmbeddedAgentMock).toHaveBeenCalledTimes(2);
+      expect(execution.outcome).toMatchObject({ kind, lastModelRequest: request });
+      if (execution.outcome.kind === "settled") {
+        expect(execution.outcome.result.meta.agentMeta).toBeUndefined();
+      }
+    },
+  );
+
   it.each([
     { stopReason: "error", isHeartbeat: false, failureText: GENERIC_EXTERNAL_RUN_FAILURE_TEXT },
     { stopReason: "error", isHeartbeat: true, failureText: HEARTBEAT_EXTERNAL_RUN_FAILURE_TEXT },

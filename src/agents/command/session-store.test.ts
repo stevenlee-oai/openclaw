@@ -2279,7 +2279,14 @@ describe("updateSessionStoreAfterAgentRun", () => {
       };
       await seedSessionStore(storePath, sessionStore);
 
-      // Heartbeat turn uses a different model
+      // Heartbeat turn uses a different model.
+      const lastModelRequest = {
+        provider: "claude-cli",
+        model: "claude-sonnet-4-6",
+        endpoint: "https://api.example.com/v1/responses",
+        transport: "http" as const,
+        timestamp: 200,
+      };
       const result: EmbeddedAgentRunResult = {
         meta: {
           durationMs: 500,
@@ -2289,6 +2296,7 @@ describe("updateSessionStoreAfterAgentRun", () => {
             model: "claude-sonnet-4-6",
             agentHarnessId: "codex",
             contextTokens: 128_000,
+            lastModelRequest,
             cliSessionBinding: { sessionId: "heartbeat-cli-session" },
             contextBudgetStatus: {
               schemaVersion: 1,
@@ -2326,6 +2334,7 @@ describe("updateSessionStoreAfterAgentRun", () => {
       });
 
       // Runtime model and contextTokens should be preserved from the original entry
+      expect(sessionStore[sessionKey]?.lastModelRequest).toEqual(lastModelRequest);
       expect(sessionStore[sessionKey]?.model).toBe("claude-opus-4-6");
       expect(sessionStore[sessionKey]?.modelProvider).toBe("anthropic");
       expect(sessionStore[sessionKey]?.agentHarnessId).toBe("openclaw");
@@ -2337,6 +2346,7 @@ describe("updateSessionStoreAfterAgentRun", () => {
       });
 
       const persisted = loadPersistedSessionStore(storePath);
+      expect(persisted[sessionKey]?.lastModelRequest).toEqual(lastModelRequest);
       expect(persisted[sessionKey]?.model).toBe("claude-opus-4-6");
       expect(persisted[sessionKey]?.modelProvider).toBe("anthropic");
       expect(persisted[sessionKey]?.agentHarnessId).toBe("openclaw");
@@ -2389,6 +2399,13 @@ describe("updateSessionStoreAfterAgentRun", () => {
         lastActivityAt: 21,
         modelProvider: "openai",
         model: "gpt-5.5",
+        lastModelRequest: {
+          provider: "openai",
+          model: "gpt-5.5",
+          endpoint: "https://api.openai.com/v1/responses",
+          transport: "http",
+          timestamp: 20,
+        },
         contextTokens: 400_000,
         inputTokens: 44,
         outputTokens: 55,
@@ -2414,6 +2431,13 @@ describe("updateSessionStoreAfterAgentRun", () => {
             provider: "claude-cli",
             model: "claude-sonnet-4-6",
             contextTokens: 200_000,
+            lastModelRequest: {
+              provider: "claude-cli",
+              model: "claude-sonnet-4-6",
+              endpoint: "https://api.example.com/v1/responses",
+              transport: "http",
+              timestamp: 30,
+            },
             usage: {
               input: 100,
               output: 50,
@@ -2446,6 +2470,10 @@ describe("updateSessionStoreAfterAgentRun", () => {
       expect(next?.modelProvider).toBe("openai");
       expect(next?.model).toBe("gpt-5.5");
       expect(next?.contextTokens).toBe(400_000);
+      expect(next?.lastModelRequest).toEqual(freshVisibleEntry.lastModelRequest);
+      expect(loadPersistedSessionEntry(storePath, sessionKey)?.lastModelRequest).toEqual(
+        freshVisibleEntry.lastModelRequest,
+      );
       expect(next?.inputTokens).toBe(44);
       expect(next?.outputTokens).toBe(55);
       expect(next?.totalTokens).toBe(666);

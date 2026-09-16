@@ -10,6 +10,7 @@ import { ResponsesWS } from "openai/resources/responses/ws.js";
 import { getAiTransportHost, resolveAiTransportHeaderSentinels } from "../host.js";
 import { registerSessionResourceCleanup } from "../session-resources.js";
 import type { StreamOptions, UserMessage } from "../types.js";
+import { notifyModelRequest } from "./model-request-observer.js";
 import {
   resolveResponsesContinuationRequest,
   type ResponsesContinuationRequest,
@@ -514,6 +515,11 @@ export function createOpenAIResponsesWebSocketStream(params: {
         if (resumedSteering) {
           requestDispatched = true;
           if (resumedSteering.requiresInput) {
+            notifyModelRequest(params, () => ({
+              url: lease.socket.url.toString(),
+              transport: "websocket",
+              model: requestModel,
+            }));
             lease.socket.send({
               ...prepared.request,
               type: "response.create",
@@ -532,6 +538,11 @@ export function createOpenAIResponsesWebSocketStream(params: {
             if (!requestDispatched) {
               // Set before send because a thrown send cannot prove the frame stayed local.
               requestDispatched = true;
+              notifyModelRequest(params, () => ({
+                url: lease.socket.url.toString(),
+                transport: "websocket",
+                model: requestModel,
+              }));
               lease.socket.send({
                 ...prepared.request,
                 type: "response.create",

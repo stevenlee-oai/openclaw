@@ -71,6 +71,7 @@ import {
   resolveProviderEndpoint,
   transformTransportMessages,
 } from "./host-policy.js";
+import { copyModelRequestObserver, notifyModelRequest } from "./model-request-observer.js";
 import { resolveOpencodeSessionHeaders } from "./session-affinity.js";
 import {
   copyProviderAcceptanceObserver,
@@ -448,10 +449,12 @@ function createAnthropicTransportClient(params: {
     (options?.interleavedThinking ?? true) && !supportsClaudeAdaptiveThinking(model);
   // Kimi's Anthropic thinking SSE is already well-formed for this parser, but
   // the OpenAI SDK compatibility sanitizer can stall before the text block.
-  const fetch =
-    isKimiAnthropicProvider(model.provider) && options?.thinkingEnabled === true
-      ? buildGuardedModelFetch(model, undefined, { sanitizeSse: false })
-      : buildGuardedModelFetch(model);
+  const fetch = buildGuardedModelFetch(model, undefined, {
+    ...(isKimiAnthropicProvider(model.provider) && options?.thinkingEnabled === true
+      ? { sanitizeSse: false }
+      : {}),
+    onRequest: (url) => notifyModelRequest(options, { url, transport: "http" }),
+  });
   if (model.provider === "github-copilot") {
     const betaFeatures = needsInterleavedBeta ? ["interleaved-thinking-2025-05-14"] : [];
     return {
@@ -680,6 +683,7 @@ function resolveAnthropicTransportOptions(
     cacheTtlPruning: options?.cacheTtlPruning,
     ...(options?.authProfileId ? { authProfileId: options.authProfileId } : {}),
   });
+  copyModelRequestObserver(options, resolved);
   if (reasoning === "off") {
     resolved.thinkingEnabled = false;
     return resolved;

@@ -1514,6 +1514,10 @@ describe("fetchWithSsrFGuard hardening", () => {
 
     const headers = getSecondRequestHeaders(fetchImpl);
     expect(beforeRequest).toHaveBeenCalledTimes(2);
+    expect(beforeRequest.mock.calls).toEqual([
+      ["https://api.example.com/start"],
+      ["https://api.example.com/next"],
+    ]);
     expect(headers.get("authorization")).toBe("Bearer secret");
     await result.release();
   });

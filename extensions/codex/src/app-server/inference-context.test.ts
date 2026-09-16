@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   CODEX_INFERENCE_GENERATION_KEY,
   createCodexInferenceContext,
@@ -22,6 +22,42 @@ function request(threadId: string, generation?: string, extra: JsonObject = {}):
 }
 
 describe("parent-local inference context", () => {
+  it("attributes concurrent request observations to the exact live admitted generation", () => {
+    const context = createCodexInferenceContext(() => {});
+    const register = (threadId: string) => {
+      const onModelRequest = vi.fn();
+      const registration = context.register({
+        threadId,
+        text: "",
+        signal: new AbortController().signal,
+        assertCurrent: () => {},
+        onModelRequest,
+      });
+      return {
+        ...registration,
+        onModelRequest,
+        prepared: context.prepare(request(threadId, registration.generation)),
+      };
+    };
+    const first = register("first");
+    const second = register("second");
+    const observation = { url: "https://api.openai.com/v1/responses", transport: "http" as const };
+    second.prepared.onModelRequest?.(observation);
+    expect(first.onModelRequest).not.toHaveBeenCalled();
+    expect(second.onModelRequest).toHaveBeenCalledExactlyOnceWith(observation);
+    const replacement = register("first");
+    expect(() => first.prepared.onModelRequest?.(observation)).toThrow();
+    replacement.prepared.onModelRequest?.(observation);
+    expect(replacement.onModelRequest).toHaveBeenCalledExactlyOnceWith(observation);
+    expect(first.onModelRequest).not.toHaveBeenCalled();
+    replacement.release();
+    expect(() => replacement.prepared.onModelRequest?.(observation)).toThrow();
+    second.prepared.onModelRequest?.(observation);
+    expect(second.onModelRequest).toHaveBeenCalledTimes(2);
+    context.close();
+    expect(() => second.prepared.onModelRequest?.(observation)).toThrow();
+  });
+
   it("refreshes and removes overlays for native input-only requests without changing history", () => {
     const context = createCodexInferenceContext(() => {});
     const register = (text: string) =>
@@ -166,6 +202,7 @@ describe("parent-local inference context", () => {
       text: "persona B",
       signal: new AbortController().signal,
       assertCurrent: () => {},
+      onModelRequest: vi.fn(),
     });
     const exclusions: JsonObject[] = [
       { request_kind: "compaction" },
@@ -175,6 +212,7 @@ describe("parent-local inference context", () => {
     for (const extra of exclusions) {
       const source = request("root", registration.generation, extra);
       expect(context.prepare(source).body).toEqual(source);
+      expect(context.prepare(source).onModelRequest).toBeUndefined();
     }
     // Native Memory metadata intentionally omits its nested thread identity while
     // client_metadata still carries the physical thread ID (0.153.4 responses_metadata.rs).
@@ -189,6 +227,11 @@ describe("parent-local inference context", () => {
     expect(context.prepare(memory).body).toEqual(memory);
     const startup = { ...request("root", undefined, { request_kind: "prewarm" }), generate: false };
     expect(context.prepare(startup).body).toEqual(startup);
+    expect(context.prepare(startup).onModelRequest).toBeUndefined();
+    expect(
+      context.prepare(request("root", registration.generation, { request_kind: "prewarm" }))
+        .onModelRequest,
+    ).toBeUndefined();
     // Immediate normal continuation after compaction still reads the current snapshot.
     expect(context.prepare(request("root", registration.generation)).body.instructions).toContain(
       "persona B",

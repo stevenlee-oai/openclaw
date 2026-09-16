@@ -73,6 +73,48 @@ export async function accountAgentTurnCompaction(params: {
   return count;
 }
 
+/** Failed turns can have dispatched a request without returning provider usage. */
+export async function accountAgentTurnModelRequest(
+  params: Pick<
+    AgentTurnAccountingContext,
+    | "activeSessionEntry"
+    | "activeSessionStore"
+    | "cfg"
+    | "followupRun"
+    | "isHeartbeat"
+    | "replyOperation"
+    | "sessionKey"
+    | "storePath"
+  > & {
+    lastModelRequest?: FinalizeReplyAgentRunInput["execution"]["lastModelRequest"];
+    compaction?: AgentTurnCompaction;
+  },
+) {
+  const operation = params.replyOperation;
+  if (!params.lastModelRequest || !operation) {
+    return;
+  }
+  const target = params.compaction?.durable.at(-1)?.target;
+  await persistSessionUsageUpdate({
+    agentId: target?.agentId ?? params.followupRun.run.agentId,
+    sessionStore: params.activeSessionStore,
+    storePath: target?.storePath ?? params.storePath,
+    sessionKey: target?.sessionKey ?? params.sessionKey,
+    expectedSession: target ?? {
+      sessionId: params.followupRun.run.sessionId,
+      lifecycleRevision: params.activeSessionEntry?.lifecycleRevision,
+    },
+    authorize: () => replyRunRegistry.get(operation.key) === operation,
+    cfg: params.cfg,
+    lastModelRequest: params.lastModelRequest,
+    isHeartbeat: params.isHeartbeat,
+    preserveRuntimeModel: true,
+    preserveUserFacingSessionModelState: shouldPreserveUserFacingSessionStateForInputProvenance(
+      params.followupRun.run.inputProvenance,
+    ),
+  });
+}
+
 export async function accountAgentTurn(context: AgentTurnAccountingContext) {
   const {
     activeSessionStore,
@@ -302,6 +344,7 @@ export async function accountAgentTurn(context: AgentTurnAccountingContext) {
     agentDir: followupRun.run.agentDir,
     usage,
     lastCallUsage: runResult.meta?.agentMeta?.lastCallUsage,
+    lastModelRequest: execution.lastModelRequest ?? runResult.meta?.agentMeta?.lastModelRequest,
     currentContextSnapshot,
     promptTokens,
     isHeartbeat,
@@ -383,6 +426,18 @@ export async function accountFollowupTurn(params: {
       compaction: settled.compaction,
       sessionStore: turn.sessionStore,
       replyOperation: turn.operation,
+    });
+    await accountAgentTurnModelRequest({
+      lastModelRequest: settled.lastModelRequest,
+      compaction: settled.compaction,
+      activeSessionEntry: turn.session.current(),
+      activeSessionStore: turn.sessionStore,
+      cfg: turn.config,
+      followupRun: turn.queued,
+      isHeartbeat: defaults.opts?.isHeartbeat === true,
+      replyOperation: turn.operation,
+      sessionKey,
+      storePath: turn.session.kind === "session" ? turn.session.storePath : undefined,
     });
     return undefined;
   }

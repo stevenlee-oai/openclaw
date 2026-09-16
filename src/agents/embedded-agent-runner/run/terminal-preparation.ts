@@ -21,7 +21,7 @@ import {
   resolveFinalAssistantVisibleText,
   resolveReportedModelRef,
 } from "./helpers.js";
-import type { RunEmbeddedAgentParams } from "./params.js";
+import type { RunEmbeddedAgentInternalParams } from "./internal-params.js";
 import { buildEmbeddedRunPayloads } from "./payloads.js";
 import { resolveProviderRefusal } from "./provider-refusal.js";
 import { buildTraceToolSummary, resolveSuccessfulToolNames } from "./run-attempt-result.js";
@@ -38,7 +38,7 @@ import {
 
 export function prepareEmbeddedRunTerminal(input: {
   mergeToolMedia?: ReturnType<typeof createPendingToolMediaCarry>["merge"];
-  runParams: RunEmbeddedAgentParams;
+  runParams: RunEmbeddedAgentInternalParams;
   attempt: EmbeddedRunAttemptWithReceiptEvidence;
   currentAttemptCompletedAssistant?: AssistantMessage;
   provider: string;
@@ -53,7 +53,7 @@ export function prepareEmbeddedRunTerminal(input: {
   usageAccumulator: UsageAccumulator;
   lastRunPromptUsage?: NormalizedUsage;
   contextRecoveryState: EmbeddedRunContextRecoveryState;
-  resolvedToolResultFormat: NonNullable<RunEmbeddedAgentParams["toolResultFormat"]>;
+  resolvedToolResultFormat: NonNullable<RunEmbeddedAgentInternalParams["toolResultFormat"]>;
   terminalState: EmbeddedRunTerminalState;
 }): {
   agentMeta: EmbeddedAgentMeta;
@@ -129,6 +129,7 @@ export function prepareEmbeddedRunTerminal(input: {
       ? { runtimeModelSelection: attempt.runtimeModelSelection }
       : {}),
     credentialSource: attempt.modelAttempt?.credentialSource,
+    lastModelRequest: attempt.lastModelRequest,
     usage: usageMeta.usage,
     lastCallUsage: usageMeta.lastCallUsage,
     promptTokens: usageMeta.promptTokens,

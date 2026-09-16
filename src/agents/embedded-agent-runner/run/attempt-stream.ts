@@ -2,6 +2,7 @@
  * Installs replay, tool-call, timeout, and diagnostic guards around an embedded stream.
  */
 import type { OpenAIResponsesCompactionRejection } from "@openclaw/ai/transports";
+import { withModelRequestObserver } from "@openclaw/ai/transports";
 import { resolveDiagnosticModelContentCapturePolicy } from "../../../infra/diagnostic-llm-content.js";
 import { DEFAULT_UNDICI_STREAM_TIMEOUT_MS } from "../../../infra/net/undici-global-dispatcher.js";
 import type { DiagnosticEmbeddedRunOwner } from "../../../logging/diagnostic-run-activity.js";
@@ -287,7 +288,13 @@ export function installEmbeddedAttemptStreamGuards(
     ) {
       return createYieldAbortedResponse(model);
     }
-    return innerStreamFn(model, context, options);
+    return innerStreamFn(
+      model,
+      context,
+      attempt.onModelRequest
+        ? withModelRequestObserver({ ...options }, attempt.onModelRequest)
+        : options,
+    );
   };
 
   // Some models emit tool names with surrounding whitespace (e.g. " read ").

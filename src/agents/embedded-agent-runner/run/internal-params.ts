@@ -1,5 +1,5 @@
 import type { SessionTranscriptRuntimeTarget } from "../../../config/sessions/session-accessor.js";
-import type { InternalSessionEntry } from "../../../config/sessions/types.js";
+import type { InternalSessionEntry, SessionModelRequest } from "../../../config/sessions/types.js";
 import type { AgentExecutionAuthBinding } from "../../execution-auth-binding.js";
 import type { ModelFallbackRouteResolution } from "../../model-fallback.types.js";
 import type { PreparedModelRuntimePluginGeneration } from "../../prepared-model-runtime.types.js";
@@ -38,6 +38,8 @@ export type RunEmbeddedAgentInternalParams = RunEmbeddedAgentParams & {
   requestedRouteResolution?: ModelFallbackRouteResolution;
   onCompactionRequestBudget?: (budget: CompactionRequestBudget | undefined) => void;
   onCompactionAccounting?: (fact: CompactionAccountingFact | undefined) => void;
+  /** Host-sanitized request facts survive a thrown attempt and subsequent fallback. */
+  onModelRequestObserved?: (request: SessionModelRequest) => void;
   /** Attempt-local context observer, installed by the host loop before dispatch. */
   onContextAccountingEvent?: (event: EmbeddedContextAccountingEvent) => void;
   onSuccessfulAuthBinding?: (binding: AgentExecutionAuthBinding) => void;

@@ -2,6 +2,7 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
+import { withModelRequestObserver } from "../transports/model-request-observer.js";
 import type { Context, Model } from "../types.js";
 import { isTransientNetworkError } from "../utils/retryable-network-errors.js";
 import {
@@ -42,6 +43,7 @@ describe("ChatGPT Responses WebSocket failures", () => {
   });
 
   it("classifies an abrupt WebSocket disconnect as transient", async () => {
+    const onModelRequest = vi.fn();
     const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
     server.once("connection", (socket) => {
       socket.once("message", () => socket.terminate());
@@ -53,9 +55,14 @@ describe("ChatGPT Responses WebSocket failures", () => {
       const result = await streamOpenAICodexResponses(
         { ...model, baseUrl: `http://127.0.0.1:${port}/backend-api` },
         context,
-        { apiKey: createJwt(), transport: "websocket" },
+        withModelRequestObserver({ apiKey: createJwt(), transport: "websocket" }, onModelRequest),
       ).result();
 
+      expect(onModelRequest).toHaveBeenCalledExactlyOnceWith({
+        url: `ws://127.0.0.1:${port}/backend-api/codex/responses`,
+        transport: "websocket",
+        model: model.id,
+      });
       expect(result).toMatchObject({
         stopReason: "error",
         errorMessage: expect.stringMatching(/^WebSocket (?:error|closed 1006(?: .*)?)$/u),

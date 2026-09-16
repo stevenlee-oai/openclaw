@@ -8,6 +8,7 @@ import {
 } from "../providers/openai-chatgpt-responses.js";
 import { streamOpenAIResponses } from "../providers/openai-responses.js";
 import type { AssistantMessageEventStreamLike, Context, Model, StreamFn } from "../types.js";
+import { withModelRequestObserver } from "./model-request-observer.js";
 import {
   createAzureOpenAIResponsesTransportStreamFn,
   createOpenAIResponsesTransportStreamFn,
@@ -264,6 +265,50 @@ describe.each([
 });
 
 describe.each(fixtures)("$name response hook", ({ createStream, installResponse, model }) => {
+  it.each([202, 401])(
+    "observes the dispatched URL even when the response is %s",
+    async (status) => {
+      const onRequest = vi.fn();
+      const fetchMock = vi.fn<typeof fetch>(async () => {
+        expect(onRequest).toHaveBeenCalledOnce();
+        return status === 202 ? completedResponse() : new Response("unauthorized", { status });
+      });
+      configureAiTransportHost({ buildModelFetch: () => undefined });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await createStream(withModelRequestObserver({}, onRequest)).result();
+
+      expect(result.stopReason).toBe(status === 202 ? "stop" : "error");
+      expect(fetchMock).toHaveBeenCalledOnce();
+      const target = fetchMock.mock.calls[0]?.[0];
+      expect(onRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: target instanceof Request ? target.url : String(target),
+          transport: "http",
+        }),
+      );
+    },
+  );
+
+  it("does not report a request when payload preparation fails", async () => {
+    const onRequest = vi.fn();
+    const fetchMock = vi.fn<typeof fetch>();
+    configureAiTransportHost({ buildModelFetch: () => undefined });
+    vi.stubGlobal("fetch", fetchMock);
+    const options = withModelRequestObserver(
+      {
+        onPayload: () => {
+          throw new Error("payload rejected");
+        },
+      },
+      onRequest,
+    );
+
+    expect((await createStream(options).result()).stopReason).toBe("error");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onRequest).not.toHaveBeenCalled();
+  });
+
   it("awaits response metadata before exposing the first stream event", async () => {
     installResponse();
     const order: string[] = [];

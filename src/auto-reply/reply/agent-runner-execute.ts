@@ -17,7 +17,10 @@ import {
 import { executeAgentTurn } from "./agent-runner-execution.js";
 import { markPostCompactionModelFailurePayload } from "./agent-runner-failure-reply.js";
 import { runMemoryFlushIfNeeded, runSessionCompactionIfNeeded } from "./agent-runner-memory.js";
-import { accountAgentTurnCompaction } from "./agent-runner-result-accounting.js";
+import {
+  accountAgentTurnCompaction,
+  accountAgentTurnModelRequest,
+} from "./agent-runner-result-accounting.js";
 import { finalizeReplyAgentRun } from "./agent-runner-result.js";
 import { buildThreadingToolContext } from "./agent-runner-utils.js";
 import type { BlockReplyPipeline } from "./block-reply-pipeline.js";
@@ -380,6 +383,18 @@ export async function executePreparedReplyAgentRun(
       compaction: runOutcome.outcome.compaction,
       sessionStore: activeSessionStore,
       replyOperation,
+    });
+    await accountAgentTurnModelRequest({
+      lastModelRequest: runOutcome.outcome.lastModelRequest,
+      compaction: runOutcome.outcome.compaction,
+      activeSessionEntry,
+      activeSessionStore,
+      cfg,
+      followupRun,
+      isHeartbeat,
+      replyOperation,
+      sessionKey,
+      storePath,
     });
   }
   if (operationSuperseded) {

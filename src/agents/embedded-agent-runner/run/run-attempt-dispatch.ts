@@ -51,14 +51,13 @@ import type { EmbeddedRunAttemptParams } from "./types.js";
 type PreparedRuntime = Awaited<ReturnType<typeof prepareEmbeddedRunRuntime>>;
 type ContextEngine = Awaited<ReturnType<typeof resolveContextEngine>>;
 type SessionPromptState = ReturnType<typeof createEmbeddedRunSessionPromptState>;
-type TerminalRetryState = ReturnType<typeof createEmbeddedRunTerminalRetryState>;
 
 export async function prepareAndDispatchEmbeddedRunAttempt(input: {
   runInput: PreparedEmbeddedRunInput;
   preparedRuntime: PreparedRuntime;
   contextEngine: ContextEngine;
   sessionPromptState: SessionPromptState;
-  terminalRetryState: TerminalRetryState;
+  terminalRetryState: ReturnType<typeof createEmbeddedRunTerminalRetryState>;
   replayState: EmbeddedRunReplayState;
   provider: string;
   modelId: string;
@@ -688,7 +687,11 @@ export async function prepareAndDispatchEmbeddedRunAttempt(input: {
     turnSourceThreadId: params.currentThreadTs,
   });
   const rawAttempt = await withGatewayToolCallerIdentity(callerIdentity, () =>
-    runEmbeddedAttemptWithBackend(attemptParams, nativeSessionRuntime),
+    runEmbeddedAttemptWithBackend(
+      attemptParams,
+      nativeSessionRuntime,
+      params.onModelRequestObserved,
+    ),
   )
     .catch((err: unknown): never => {
       throw input.getPostCompactionAbortError() ?? err;

@@ -1,5 +1,7 @@
 import { sanitizeForLog } from "../../../packages/terminal-core/src/ansi.js";
+import { persistSessionUsageUpdate } from "../../auto-reply/reply/session-usage.js";
 import { resolveSessionAuthProfileOverrideSource } from "../../config/sessions/auth-profile-override-provenance.js";
+import type { SessionModelRequest } from "../../config/sessions/types.js";
 import { clearAgentRunTerminalWriteContext } from "../../infra/agent-run-terminal-writes.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {
@@ -199,10 +201,12 @@ export async function runEmbeddedAgentAttempt(params: RunEmbeddedAgentAttemptPar
   );
 
   let result: AgentAttemptResult;
+  let lastModelRequest: SessionModelRequest | undefined;
+  const persistVisibleSessionState =
+    !params.suppressVisibleSessionEffects && !params.preserveUserFacingSessionModelState;
   const compactionAccounting = createCommandCompactionAccounting({
     sessionStore,
-    persistCounts:
-      !params.suppressVisibleSessionEffects && !params.preserveUserFacingSessionModelState,
+    persistCounts: persistVisibleSessionState,
     onDurableFact: (fact) => {
       attemptSessionTarget = fact.target;
       params.trackInternalModelRunTarget(fact.target);
@@ -316,8 +320,7 @@ export async function runEmbeddedAgentAttempt(params: RunEmbeddedAgentAttemptPar
               !sessionStore ||
               !sessionKey ||
               isModelSelectionLocked(sessionEntry) ||
-              params.suppressVisibleSessionEffects ||
-              params.preserveUserFacingSessionModelState ||
+              !persistVisibleSessionState ||
               !entryMatchesAutoFallbackPrimaryProbe(sessionEntry, autoFallbackPrimaryProbe) ||
               winnerProvider !== autoFallbackPrimaryProbe.provider ||
               winnerModel !== autoFallbackPrimaryProbe.model
@@ -532,6 +535,10 @@ export async function runEmbeddedAgentAttempt(params: RunEmbeddedAgentAttemptPar
               onContextEngineTurnCandidate: runOptions.onContextEngineTurnCandidate,
               onUserMessagePersisted: attemptLifecycleCallbacks.onUserMessagePersisted,
               onCompactionAccounting: candidateAccounting.observe,
+              onModelRequestObserved: (request) => {
+                // A later candidate can fail before dispatch; keep the last observed request.
+                lastModelRequest = request;
+              },
               onCompactionRequestBudget: candidateAccounting.observeRequestBudget,
               onSuccessfulAuthProfile: (selection) => {
                 // Absence is a valid ambient-auth result; only an uncalled observer is unknown.
@@ -648,13 +655,26 @@ export async function runEmbeddedAgentAttempt(params: RunEmbeddedAgentAttemptPar
         );
         continue;
       }
-      const errorLifecycleFields = resolveAgentRunErrorLifecycleFields(
-        err,
-        params.opts.abortSignal,
-      );
+      const accountingTarget = compactionAccounting.fact?.target;
+      if (lastModelRequest && accountingTarget && persistVisibleSessionState) {
+        // Thrown transports have no result metadata. Retain the request only on
+        // the durable writer captured before the attempt's cleanup.
+        await persistSessionUsageUpdate({
+          ...accountingTarget,
+          expectedSession: accountingTarget,
+          authorize: () => {
+            params.preparedRunAdmission.assertSourceCurrent();
+            return true;
+          },
+          cfg,
+          sessionStore,
+          lastModelRequest,
+          preserveRuntimeModel: true,
+        });
+      }
       lifecycle.emitBasicError(
         err instanceof Error ? err : new Error("Agent run failed"),
-        errorLifecycleFields,
+        resolveAgentRunErrorLifecycleFields(err, params.opts.abortSignal),
       );
       await fallbackTrajectoryRecorder?.flush();
       await deferredLifecycle.complete();
@@ -665,6 +685,7 @@ export async function runEmbeddedAgentAttempt(params: RunEmbeddedAgentAttemptPar
   return {
     startedAt,
     result,
+    lastModelRequest,
     fallbackProvider,
     fallbackModel,
     fallbackExhausted,

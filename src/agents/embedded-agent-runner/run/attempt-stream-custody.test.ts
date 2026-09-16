@@ -1,6 +1,8 @@
 import { realpathSync } from "node:fs";
 import path from "node:path";
+import { configureAiTransportHost, getAiTransportHost } from "@openclaw/ai";
 import type { OpenAIResponsesCompactionRejection } from "@openclaw/ai/transports";
+import { createOpenAIResponsesTransportStreamFn } from "@openclaw/ai/transports";
 import {
   createAssistantMessageEventStream,
   type AssistantMessageEvent,
@@ -251,6 +253,44 @@ async function createFixture(
 }
 
 describe("installed replay repair ownership", () => {
+  it("carries the attempt observer through the installed stream guards to HTTP dispatch", async () => {
+    const previousHost = getAiTransportHost();
+    const onModelRequest = vi.fn();
+    const transport = createOpenAIResponsesTransportStreamFn();
+    try {
+      configureAiTransportHost({ buildModelFetch: () => undefined });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              `data: ${JSON.stringify({
+                type: "response.completed",
+                response: { id: "resp_observed", status: "completed", output: [] },
+              })}\n\ndata: [DONE]\n\n`,
+              { headers: { "content-type": "text/event-stream" } },
+            ),
+        ),
+      );
+      const fixture = await createFixture((model, context, options) =>
+        transport({ ...model, provider: "openai", baseUrl: "https://api.openai.com/v1" }, context, {
+          ...options,
+          apiKey: "fixture-key",
+        }),
+      );
+      fixture.attempt.onModelRequest = onModelRequest;
+
+      expect((await (await fixture.open()).result()).stopReason).toBe("stop");
+      expect(onModelRequest).toHaveBeenCalledExactlyOnceWith({
+        url: "https://api.openai.com/v1/responses",
+        transport: "http",
+      });
+    } finally {
+      configureAiTransportHost(previousHost);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("closes a partial-only thinking stream without waiting for ordinary provider completion", async () => {
     const source = createAssistantMessageEventStream();
     const fixture = await createFixture(

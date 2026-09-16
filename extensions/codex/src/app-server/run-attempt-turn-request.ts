@@ -178,6 +178,7 @@ export async function prepareCodexAttemptTurnRequest(
               workspaceBootstrapContext.memoryCollaborationInstructions,
           }) ?? "",
         signal: runAbortController.signal,
+        onModelRequest: runtimeParams.onModelRequest,
         assertCurrent: () => {
           params.hostCapabilities.assertActive();
           connection.assertCurrent();

@@ -15,6 +15,7 @@ import { resolveExtraParams } from "../agents/embedded-agent-runner/extra-params
 import { resolveFastModeState } from "../agents/fast-mode.js";
 import { resolveModelAuthMode } from "../agents/model-auth.js";
 import { findModelInCatalog } from "../agents/model-catalog-lookup.js";
+import { formatModelEndpointUrl } from "../agents/model-endpoint.js";
 import {
   areRuntimeModelRefsEquivalent,
   shouldPreferActiveRuntimeAliasAuthLabel,
@@ -113,6 +114,7 @@ type StatusArgs = {
   resolvedReasoning?: ReasoningLevel;
   resolvedElevated?: ElevatedLevel;
   modelAuth?: string;
+  selectedEndpoint?: string;
   activeModelAuth?: string;
   activeModel?: { modelProvider: string; model: string };
   usageLine?: string;
@@ -969,6 +971,26 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     `🧠 Model: ${selectedModelLabel}${modelNote}${overrideLabel}${liveSwitchNote}`,
   ];
 
+  const selectedEndpoint = args.selectedEndpoint
+    ? formatModelEndpointUrl(args.selectedEndpoint)
+    : undefined;
+  const lastRequest = entry?.lastModelRequest;
+  const lastEndpoint = lastRequest ? formatModelEndpointUrl(lastRequest.endpoint) : undefined;
+  const lastRequestModel = lastRequest
+    ? buildModelCatalogRef(lastRequest.provider, lastRequest.model)
+    : undefined;
+  const lastEndpointValue =
+    lastRequest && lastEndpoint
+      ? [
+          lastEndpoint,
+          lastRequest.transport === "websocket" ? "WebSocket" : "HTTP",
+          lastRequestModel !== selectedModelLabel ? lastRequestModel : undefined,
+          formatTimeAgo(now - lastRequest.timestamp),
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "not observed";
+
   // Show configured fallback models (from agent model config)
   const configuredFallbacks = (() => {
     const modelConfig = args.agent?.model;
@@ -1021,6 +1043,8 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     [versionLine, timeLine, uptimeLine],
     [
       ...modelLines,
+      `🌐 Selected endpoint: ${selectedEndpoint ?? "unknown"}`,
+      `📡 Last observed request endpoint: ${lastEndpointValue}`,
       selectedAuthLabelValue ? `🔑 Auth: ${selectedAuthLabelValue}` : null,
       configuredFallbacksLine,
       fallbackLine,
@@ -1061,6 +1085,8 @@ export function buildStatusMessageParts(args: StatusArgs): StatusMessageParts {
     }
   };
   pushStatusRow("🧠 Model", `${selectedModelLabel}${modelNote}${overrideLabel}${liveSwitchNote}`);
+  pushStatusRow("🌐 Selected endpoint", selectedEndpoint ?? "unknown");
+  pushStatusRow("📡 Last observed request endpoint", lastEndpointValue);
   pushStatusRow("🔑 Auth", selectedAuthLabelValue);
   pushStatusRow("🔄 Fallbacks", configuredFallbacks?.join(", "));
   pushStatusRow("↪️ Fallback", fallbackValue);

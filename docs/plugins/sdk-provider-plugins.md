@@ -311,6 +311,14 @@ a saved policy is not proof that the running Gateway applied it.
     timeline](/plugins/sdk-migration/removal-timeline) for the dates and gates
     that govern deprecated surfaces named on this page and its child pages.
 
+    Interactive auth methods can use `ctx.existingProfiles` to reconnect with
+    host-authorized `{ profileId, credential }` candidates. CLI login and onboarding
+    supply stored profiles for the selected provider; `--profile-id` narrows CLI
+    login to that profile. Personal account flows supply only the current person's
+    selected private account. An absent or empty list means no reusable account.
+    Provider methods select compatible candidates and offer reuse or a new account;
+    they must not load shared credentials to fill the list.
+
     A custom interactive auth method that mints a static token or API key can
     request protected persistence on its returned profile:
 

@@ -429,9 +429,9 @@ allowance. It is a separate sign-in choice from the existing Codex integration.
 It does not connect your ChatGPT conversations, Codex history, or connected apps.
 
 <Warning>
-  This preview is awaiting an OpenAI-approved OpenClaw OAuth client registration.
-  Sign-in remains unavailable until that client is configured in the build and
-  enabled by OpenAI. A test client does not establish release readiness.
+  This preview requires OpenAI to enable dynamic agent registration and token
+  sharing in the target environment. Production registration and Responses API
+  access have not yet been verified for this preview.
 </Warning>
 
 Once enabled, run this on the computer running your browser:
@@ -439,6 +439,19 @@ Once enabled, run this on the computer running your browser:
 ```bash
 openclaw models auth login --provider openai --method token-sharing
 ```
+
+Without an existing registration for your account, OpenClaw starts authorization
+with `client_id=dynamic_agent_client`. After you select a ChatGPT workspace and
+approve registration, OpenAI returns a new public client ID. OpenClaw saves that
+ID with your credential and uses it for token exchange, renewal, and reconnection.
+No client secret is issued.
+
+When an existing account is available, the sign-in prompt defaults to reconnecting
+it with its saved client ID. Use the same ChatGPT user and workspace. To switch
+either, choose **Connect a different ChatGPT account or workspace** to start a
+fresh registration. Dynamically registered clients are bound to their original
+user and workspace. Saved token-sharing credentials that use a pre-registered
+OAuth client also remain usable and keep their client ID.
 
 The browser returns to `http://localhost:8080/auth/callback`. OpenClaw verifies
 the identity and granted permissions, then stores and renews the credentials
@@ -459,7 +472,7 @@ credential.
 
 ### Public OAuth client security
 
-OpenClaw's client ID is public and contains no secret. PKCE ties the authorization
+Each client ID is public and contains no secret. PKCE ties the authorization
 code to the login transaction; user consent authorizes the requested access.
 Another program can copy a public client ID, so attribution to that registration
 does not prove that the caller is an unmodified OpenClaw executable.

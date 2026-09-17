@@ -11,7 +11,9 @@ import { loginTokenSharing, refreshTokenSharingCredential } from "./token-sharin
 import {
   IDENTITY_AUTH_FLOW,
   TOKEN_SHARING_AUTH_FLOW,
+  TOKEN_SHARING_CLIENT_ID,
   TOKEN_SHARING_ISSUER,
+  TOKEN_SHARING_LEGACY_SCOPE,
   TOKEN_SHARING_RESOURCE,
   TOKEN_SHARING_SCOPE,
 } from "./token-sharing.js";
@@ -25,6 +27,8 @@ let grantScope: string;
 let idTokenAudience: string;
 let callbackError: string | undefined;
 let identityNonce: string | undefined;
+let callbackClientIds: string[];
+let identitySubject: string;
 
 beforeAll(async () => {
   keys = await generateKeyPair("RS256");
@@ -36,7 +40,7 @@ async function identityToken() {
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
     .setIssuer(TOKEN_SHARING_ISSUER)
     .setAudience(idTokenAudience)
-    .setSubject("user-1")
+    .setSubject(identitySubject)
     .setIssuedAt()
     .setExpirationTime("1h")
     .sign(keys.privateKey);
@@ -44,12 +48,34 @@ async function identityToken() {
 
 function context(): ProviderAuthContext {
   return {
-    prompter: { note: vi.fn(async () => undefined) },
+    prompter: {
+      note: vi.fn(async () => undefined),
+      select: vi.fn(async ({ initialValue }: { initialValue: string }) => initialValue),
+    },
+    existingProfiles: [
+      {
+        profileId: "openai:existing",
+        credential: {
+          type: "oauth",
+          provider: "openai",
+          access: "old-access",
+          refresh: "old-refresh",
+          expires: 0,
+          clientId,
+          issuer: TOKEN_SHARING_ISSUER,
+          tokenEndpoint: `${TOKEN_SHARING_ISSUER}/api/accounts/oauth/token`,
+          authFlow: TOKEN_SHARING_AUTH_FLOW,
+        },
+      },
+    ],
     openUrl: async (url: string) => {
       authorization = new URL(url);
       const callback = new URL(authorization.searchParams.get("redirect_uri")!);
       callback.searchParams.set("state", authorization.searchParams.get("state")!);
       callback.searchParams.set(callbackError ? "error" : "code", callbackError ?? "test-code");
+      for (const id of callbackClientIds) {
+        callback.searchParams.append("client_id", id);
+      }
       callbackResponse = fetch(callback);
       void callbackResponse.catch(() => undefined);
     },
@@ -65,6 +91,8 @@ beforeEach(() => {
   identityNonce = undefined;
   callbackError = undefined;
   callbackResponse = undefined;
+  callbackClientIds = [];
+  identitySubject = "user-1";
   request.mockImplementation(async (params) => {
     params.beforeRequest?.();
     const body = params.url.endsWith("jwks.json")
@@ -86,14 +114,118 @@ afterEach(async () => {
 });
 
 describe("ChatGPT token-sharing authorization", () => {
+  it("registers once, then reuses the returned client for refresh and subsequent login", async () => {
+    const ctx = context();
+    ctx.existingProfiles = [];
+    const registeredId = "oaiapp_testregistered";
+    callbackClientIds = [registeredId];
+    idTokenAudience = registeredId;
+    const registered = await loginTokenSharing(ctx);
+    expect(authorization.searchParams.get("client_id")).toBe("dynamic_agent_client");
+    expect(authorization.searchParams.get("agent_name_hint")).toBe("OpenClaw");
+    expect(authorization.searchParams.get("scope")?.split(" ")).toEqual(
+      expect.arrayContaining(["openid", "email", "profile", "chatpass.enable.request.direct"]),
+    );
+    const credential = registered.profiles[0]!.credential;
+    expect(credential).toMatchObject({
+      clientId: registeredId,
+      authorizationScope: TOKEN_SHARING_SCOPE,
+      authFlow: TOKEN_SHARING_AUTH_FLOW,
+    });
+    const exchange = request.mock.calls.find(([params]) => params.init?.method === "POST")![0];
+    expect(exchange.init.body.get("client_id")).toBe(registeredId);
+    expect(exchange.init.body.get("code_verifier")).toBeTruthy();
+    expect((await callbackResponse!).status).toBe(200);
+    await (await callbackResponse!).text();
+
+    if (credential.type !== "oauth") {
+      throw new Error("Expected OAuth");
+    }
+    request.mockClear();
+    const refreshed = await refreshTokenSharingCredential(credential);
+    expect(request.mock.calls[0]![0].init.body.get("client_id")).toBe(registeredId);
+    expect(refreshed.clientId).toBe(registeredId);
+
+    const reconnect = context();
+    // Named CLI profiles must keep their identity when reconnecting, too.
+    reconnect.existingProfiles = [{ ...registered.profiles[0]!, profileId: "openai:my-account" }];
+    callbackClientIds = [];
+    const reconnected = await loginTokenSharing(reconnect);
+    expect(authorization.searchParams.get("client_id")).toBe(registeredId);
+    expect(authorization.searchParams.has("agent_name_hint")).toBe(false);
+    expect(authorization.searchParams.get("scope")).toBe(TOKEN_SHARING_SCOPE);
+    expect(reconnected.profiles[0]?.profileId).toBe("openai:my-account");
+    expect(reconnected.profiles[0]?.credential).toMatchObject({ clientId: registeredId });
+  });
+
+  it("starts a fresh registration when another account or workspace is selected", async () => {
+    const ctx = context();
+    ctx.prompter.select = vi.fn().mockResolvedValue(TOKEN_SHARING_CLIENT_ID);
+    callbackClientIds = ["oaiapp_anotherregistration"];
+    idTokenAudience = callbackClientIds[0]!;
+    const result = await loginTokenSharing(ctx);
+    expect(authorization.searchParams.get("client_id")).toBe("dynamic_agent_client");
+    expect(result.profiles[0]?.credential).toMatchObject({ clientId: idTokenAudience });
+    expect(ctx.existingProfiles?.[0]?.credential).toMatchObject({ access: "old-access", clientId });
+  });
+
+  it.each([
+    { ids: [] },
+    { ids: ["dynamic_agent_client"] },
+    { ids: ["not-a-registered-client"] },
+    { ids: ["oaiapp_first", "oaiapp_second"] },
+  ])("rejects registration callback client IDs $ids before exchange", async ({ ids }) => {
+    const ctx = context();
+    ctx.existingProfiles = [];
+    callbackClientIds = ids;
+    await expect(loginTokenSharing(ctx)).rejects.toThrow("invalid OAuth client ID");
+    expect(request).not.toHaveBeenCalled();
+    expect((await callbackResponse!).status).toBe(400);
+  });
+
+  it("rejects replacement of an existing client ID in an ordinary login callback", async () => {
+    callbackClientIds = ["oaiapp_substituted"];
+    await expect(loginTokenSharing(context())).rejects.toThrow("invalid OAuth client ID");
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("keeps existing credentials that return the legacy direct-sharing scope usable", async () => {
+    grantScope = "openid offline_access resource.invoke chatgpt.tokens.use.direct";
+    const result = await loginTokenSharing(context());
+    expect(authorization.searchParams.get("scope")).toBe(TOKEN_SHARING_LEGACY_SCOPE);
+    expect(result.profiles[0]?.credential).toMatchObject({
+      authFlow: TOKEN_SHARING_AUTH_FLOW,
+      authorizationScope: TOKEN_SHARING_LEGACY_SCOPE,
+    });
+  });
+
+  it("does not replace a selected profile when reconnect returns a different identity", async () => {
+    const original = await loginTokenSharing(context());
+    await (await callbackResponse!).text();
+    const ctx = context();
+    ctx.existingProfiles = original.profiles;
+    identitySubject = "another-user";
+    await expect(loginTokenSharing(ctx)).rejects.toThrow("ChatGPT account changed");
+    expect((await callbackResponse!).status).toBe(400);
+  });
+
+  it("rejects a registration ID with an ID token addressed to the entry marker", async () => {
+    const ctx = context();
+    ctx.existingProfiles = [];
+    callbackClientIds = ["oaiapp_testregistered"];
+    idTokenAudience = TOKEN_SHARING_CLIENT_ID;
+    await expect(loginTokenSharing(ctx)).rejects.toThrow();
+    expect((await callbackResponse!).status).toBe(400);
+  });
+
   it("uses public PKCE/resource parameters, verifies identity, and returns a distinct renewable profile", async () => {
-    const result = await loginTokenSharing(context(), clientId);
+    const result = await loginTokenSharing(context());
     const exchange = request.mock.calls.find(([params]) => params.init?.method === "POST")![0];
     const form = exchange.init.body as URLSearchParams;
     expect(authorization.origin + authorization.pathname).toBe(
       `${TOKEN_SHARING_ISSUER}/api/accounts/authorize`,
     );
-    expect(authorization.searchParams.get("scope")).toBe(TOKEN_SHARING_SCOPE);
+    expect(authorization.searchParams.get("scope")).toBe(TOKEN_SHARING_LEGACY_SCOPE);
     expect(authorization.searchParams.get("resource")).toBe(TOKEN_SHARING_RESOURCE);
     expect(authorization.searchParams.get("code_challenge_method")).toBe("S256");
     expect(authorization.searchParams.get("code_challenge")).toBe(
@@ -122,7 +254,7 @@ describe("ChatGPT token-sharing authorization", () => {
 
   it("retains identity when sharing is declined without choosing a model or another funding source", async () => {
     grantScope = "openid offline_access";
-    const result = await loginTokenSharing(context(), clientId);
+    const result = await loginTokenSharing(context());
     expect(result.profiles[0]?.credential).toMatchObject({ authFlow: IDENTITY_AUTH_FLOW });
     expect(result).not.toHaveProperty("defaultModel");
     expect(result).not.toHaveProperty("configPatch");
@@ -131,16 +263,17 @@ describe("ChatGPT token-sharing authorization", () => {
 
   it("distinguishes denied authorization from completed identity-only sign-in", async () => {
     callbackError = "access_denied";
-    await expect(loginTokenSharing(context(), clientId)).rejects.toThrow(
-      "authorization was declined",
-    );
+    await expect(loginTokenSharing(context())).rejects.toThrow("authorization was declined");
     expect(request).not.toHaveBeenCalled();
   });
 
   it.each(["audience", "nonce"])("rejects an ID token with the wrong %s", async (field) => {
-    if (field === "audience") idTokenAudience = "another-client";
-    else identityNonce = "another-login";
-    await expect(loginTokenSharing(context(), clientId)).rejects.toThrow();
+    if (field === "audience") {
+      idTokenAudience = "another-client";
+    } else {
+      identityNonce = "another-login";
+    }
+    await expect(loginTokenSharing(context())).rejects.toThrow();
     expect((await callbackResponse!).status).toBe(400);
   });
 
@@ -164,16 +297,18 @@ describe("ChatGPT token-sharing authorization", () => {
       expect((await fetch(callback)).status).toBe(400);
       await openUrl(url);
     };
-    const result = await loginTokenSharing(ctx, clientId);
+    const result = await loginTokenSharing(ctx);
     expect(result.profiles).toHaveLength(1);
   });
 
   it.each([undefined, "rotated-refresh"])(
     "refreshes with the original client/resource and replacement %s",
     async (replacement) => {
-      const login = await loginTokenSharing(context(), clientId);
+      const login = await loginTokenSharing(context());
       const credential = login.profiles[0]!.credential;
-      if (credential.type !== "oauth") throw new Error("Expected OAuth");
+      if (credential.type !== "oauth") {
+        throw new Error("Expected OAuth");
+      }
       request.mockClear();
       request.mockResolvedValue({
         response: Response.json({
@@ -196,25 +331,33 @@ describe("ChatGPT token-sharing authorization", () => {
         refresh: replacement ?? "test-refresh",
         authFlow: TOKEN_SHARING_AUTH_FLOW,
         idToken: credential.idToken,
+        authorizationScope: TOKEN_SHARING_LEGACY_SCOPE,
       });
     },
   );
 
-  it("rejects a changed refresh destination before sending credentials", async () => {
-    const login = await loginTokenSharing(context(), clientId);
-    const credential = login.profiles[0]!.credential;
-    if (credential.type !== "oauth") throw new Error("Expected OAuth");
-    request.mockClear();
-    await expect(
-      refreshTokenSharingCredential({ ...credential, tokenEndpoint: "https://example.com/token" }),
-    ).rejects.toThrow("registration is missing");
-    expect(request).not.toHaveBeenCalled();
-  });
+  it.each([{ tokenEndpoint: "https://example.com/token" }, { clientId: "dynamic_agent_client" }])(
+    "rejects invalid refresh registration metadata %j before sending credentials",
+    async (metadata) => {
+      const login = await loginTokenSharing(context());
+      const credential = login.profiles[0]!.credential;
+      if (credential.type !== "oauth") {
+        throw new Error("Expected OAuth");
+      }
+      request.mockClear();
+      await expect(refreshTokenSharingCredential({ ...credential, ...metadata })).rejects.toThrow(
+        "registration is missing",
+      );
+      expect(request).not.toHaveBeenCalled();
+    },
+  );
 
   it("classifies revoked refreshes without exposing the provider response or credentials", async () => {
-    const login = await loginTokenSharing(context(), clientId);
+    const login = await loginTokenSharing(context());
     const credential = login.profiles[0]!.credential;
-    if (credential.type !== "oauth") throw new Error("Expected OAuth");
+    if (credential.type !== "oauth") {
+      throw new Error("Expected OAuth");
+    }
     request.mockResolvedValue({
       response: Response.json(
         { error: "invalid_grant", error_description: "secret-provider-detail" },

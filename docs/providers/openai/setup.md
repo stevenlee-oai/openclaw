@@ -8,6 +8,9 @@ title: "OpenAI setup"
 sidebarTitle: "Setup"
 ---
 
+Compare [OpenAI authentication methods](/providers/openai/authentication) to
+choose based on model access, hosted plugins, usage tracking, and permissions.
+
 ## Getting started
 
 <Tabs>
@@ -426,34 +429,25 @@ sidebarTitle: "Setup"
 
 ## Sign in with ChatGPT (preview)
 
-Token sharing authorizes eligible Responses API requests against your ChatGPT
-allowance. It is a separate sign-in choice from the existing Codex integration.
-It does not connect your ChatGPT conversations, Codex history, or connected apps.
+Use Sign in with ChatGPT (SIWC) for app-specific permissions and OpenAI-native
+usage tracking while eligible Responses API requests use your ChatGPT allowance.
+Your account and workspace must have SIWC registration and token sharing enabled
+by OpenAI.
 
-<Warning>
-  This preview requires OpenAI to enable dynamic agent registration and token
-  sharing in the target environment. Production registration and Responses API
-  access have not yet been verified for this preview.
-</Warning>
+Choose **Codex login** instead if you need OpenAI-hosted plugins or connected
+apps. SIWC does not support those services yet; OpenClaw tools and locally
+configured plugins can still use their own credentials. See
+[OpenAI authentication](/providers/openai/authentication) to compare the methods.
 
-Once enabled, run this on the computer running OpenClaw:
+Run this on the computer running OpenClaw:
 
 ```bash
 openclaw models auth login --provider openai --method siwc
 ```
 
-Without an existing registration for your account, OpenClaw starts authorization
-with `client_id=dynamic_agent_client`. After you select a ChatGPT workspace and
-approve registration, OpenAI returns a new public client ID. OpenClaw saves that
-ID with your credential and uses it for token exchange, renewal, and reconnection.
-No client secret is issued.
-
-When an existing account is available, the sign-in prompt defaults to reconnecting
-it with its saved client ID. Use the same ChatGPT user and workspace. To switch
-either, choose **Connect a different ChatGPT account or workspace** to start a
-fresh registration. Dynamically registered clients are bound to their original
-user and workspace. Saved token-sharing credentials that use a pre-registered
-OAuth client also remain usable and keep their client ID.
+Approve token sharing during sign-in to enable model calls. If you grant identity
+permissions only, OpenClaw saves the account but asks you to enable sharing or
+choose another credential before inference.
 
 The browser returns to `http://localhost:8080/auth/callback`. If your browser runs
 on another computer, forward its port 8080 to OpenClaw's IPv4 loopback before
@@ -464,26 +458,22 @@ computer:
 ssh -N -L 8080:127.0.0.1:8080 user@gateway-host
 ```
 
-Open the sign-in link on that computer. OpenClaw verifies
-the identity and granted permissions, then stores and renews the credentials
-through its existing auth-profile store. If you decline token sharing while
-completing sign-in, OpenClaw retains that identity and asks you to enable sharing
-or explicitly choose another inference credential.
+Open the sign-in link on that computer.
 
-The preview uses HTTP Responses streaming with full context. Developer function
-tools and web search are supported. Hosted MCP tools, connected apps, tool search,
-file-backed inputs, and WebSocket inference are unavailable. Model and allowance
-eligibility are enforced by OpenAI. OpenClaw does not use the token to query Codex
-usage or model-list endpoints.
+To reconnect an existing account, sign in with the same ChatGPT user and
+workspace. To switch either, choose **Connect a different ChatGPT account or
+workspace** in the sign-in prompt.
 
-With the Codex runtime, this preview requires a managed local process and an
-isolated agent home. Automatic context summarization is supported; manual
-`/compact`, remote execution, and supervised sessions are unavailable with this
-credential.
+### Current limitations
 
-### Public OAuth client security
+- Developer function tools and web search are supported. OpenAI-hosted plugins,
+  connected apps, hosted MCP tools, tool search, and file-backed inputs are not
+  supported yet.
+- Responses requests use HTTP streaming. WebSocket inference and SIWC quota
+  reporting in OpenClaw are not available.
+- With the Codex runtime, SIWC requires a managed local process and an isolated
+  agent home. Automatic context summarization is supported; manual `/compact`,
+  remote execution, and supervised sessions are unavailable with this credential.
 
-Each client ID is public and contains no secret. PKCE ties the authorization
-code to the login transaction; user consent authorizes the requested access.
-Another program can copy a public client ID, so attribution to that registration
-does not prove that the caller is an unmodified OpenClaw executable.
+Model and allowance eligibility are enforced by OpenAI. SIWC does not import
+ChatGPT conversations or Codex history.

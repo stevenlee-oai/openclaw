@@ -187,14 +187,16 @@ async function submitCredential(page: ModelProvidersPageTestElement) {
 
 describe("Models provider login", () => {
   it.each([
-    { kind: "oauth", cancel: false, submit: false },
-    { kind: "oauth", cancel: false, submit: true },
-    { kind: "device-code", cancel: false, submit: false },
-    { kind: "oauth", cancel: true, submit: false },
-    { kind: "device-code", cancel: true, submit: false },
+    { kind: "oauth", cancel: false, submit: false, callbackOnly: false },
+    { kind: "oauth", cancel: false, submit: false, callbackOnly: true },
+    { kind: "oauth", cancel: true, submit: false, callbackOnly: true },
+    { kind: "oauth", cancel: false, submit: true, callbackOnly: false },
+    { kind: "device-code", cancel: false, submit: false, callbackOnly: false },
+    { kind: "oauth", cancel: true, submit: false, callbackOnly: false },
+    { kind: "device-code", cancel: true, submit: false, callbackOnly: false },
   ] as const)(
-    "settles $kind sign-in through the registered Models page without a Continue (cancel: $cancel, submit: $submit)",
-    async ({ kind, cancel, submit }) => {
+    "settles $kind sign-in through the registered Models page without a Continue (cancel: $cancel, submit: $submit, callback only: $callbackOnly)",
+    async ({ kind, cancel, submit, callbackOnly }) => {
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
       vi.spyOn(window, "open").mockReturnValue(null);
       const { context, request } = loginHarness();
@@ -240,7 +242,7 @@ describe("Models provider login", () => {
                   code: "PAIR-1234",
                   message: "Enter this code to pair your account.",
                 });
-              } else {
+              } else if (!callbackOnly) {
                 void prompter
                   .text({ message: "Paste the redirect URL", signal: manualAbort.signal })
                   .catch(() => {});
@@ -305,6 +307,16 @@ describe("Models provider login", () => {
         ).toBe(false);
         if (kind === "device-code") {
           expect(page.querySelector(".wizard-step__sign-in-code")?.textContent).toBe("PAIR-1234");
+        } else if (callbackOnly) {
+          expect(page.querySelector(".wizard-step__manual-entry")).toBeNull();
+          expect(page.querySelector('input[name="wizard-text"]')).toBeNull();
+          expect(page.textContent).toContain("Waiting for sign-in");
+          expect(page.textContent).not.toContain("Starting provider sign-in");
+          const copy = [
+            ...page.querySelectorAll<HTMLButtonElement>("openclaw-modal-dialog button"),
+          ].find((button) => button.textContent?.trim() === "Copy link");
+          expect(copy?.disabled).toBe(false);
+          expect(window.open).toHaveBeenCalled();
         } else {
           expect(page.querySelector<HTMLDetailsElement>(".wizard-step__manual-entry")?.open).toBe(
             false,

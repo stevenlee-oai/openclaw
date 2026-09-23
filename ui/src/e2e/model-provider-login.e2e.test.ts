@@ -29,6 +29,115 @@ async function captureProviderProof(fileName: string, content: Locator): Promise
 }
 
 suite.define(() => {
+  it("keeps browser sign-in available while an OAuth callback is pending", async () => {
+    await suite.withPage(
+      {
+        colorScheme: "dark",
+        locale: "en-US",
+        serviceWorkers: "block",
+        viewport: { height: 1000, width: 1440 },
+        ...(recordVisuals
+          ? { recordVideo: { dir: suite.artifactDir, size: { height: 1000, width: 1440 } } }
+          : {}),
+      },
+      async ({ page, context }) => {
+        // Embedded browsers can refuse automatic windows; the explicit link must still work.
+        await page.addInitScript(() => {
+          window.open = () => null;
+        });
+        await context.route("https://provider.example/sign-in", (route) =>
+          route.fulfill({ contentType: "text/html", body: "<h1>Example sign-in</h1>" }),
+        );
+        const providerCapabilities = [
+          {
+            provider: "example",
+            apiKeySupported: false,
+            quickApiKeySetup: false,
+            loginOptions: [
+              {
+                id: "example-browser",
+                brandId: "example",
+                label: "Example browser sign-in",
+                kind: "oauth",
+                featured: true,
+              },
+            ],
+          },
+        ];
+        const gateway = await installMockGateway(page, {
+          featureMethods: [...defaultControlUiFeatureMethods, "models.authLogin", "wizard.next"],
+          heldMethods: ["wizard.next"],
+          methodResponses: {
+            "models.authStatus": { ts: 1, providers: [], providerCapabilities },
+            "models.authLogin": { done: false, status: "running" },
+          },
+        });
+        await page.goto(`${suite.server.baseUrl}settings/model-providers`);
+        await page.locator("[data-models-connect]").click();
+        await page.locator('[data-models-login-provider="example"]').click();
+        await page.getByRole("button", { name: "Example browser sign-in", exact: true }).click();
+        const login = await gateway.waitForRequest("models.authLogin");
+        const loginParams = login.params;
+        assert(loginParams && typeof loginParams === "object" && "sessionId" in loginParams);
+        await gateway.waitForRequest("wizard.next");
+        await gateway.deferNext("wizard.next", { answer: { stepId: "browser-note" } });
+        await gateway.resolveDeferred("wizard.next", {
+          done: false,
+          status: "running",
+          step: {
+            id: "browser-note",
+            type: "note",
+            executor: "client",
+            title: "Sign in to Example",
+            message: "Finish signing in in your browser.",
+            externalUrl: "https://provider.example/sign-in",
+          },
+        });
+        await expect.poll(async () => (await gateway.getRequests("wizard.next")).length).toBe(2);
+        expect((await gateway.getRequests("wizard.next")).at(-1)?.params).toEqual({
+          sessionId: loginParams.sessionId,
+          answer: { stepId: "browser-note" },
+        });
+        const dialog = page.locator("openclaw-modal-dialog");
+        await captureProviderProof("login-browser-callback-pending.png", dialog);
+        const openSignIn = dialog.getByRole("link", { name: "Open sign-in", exact: true });
+        await openSignIn.waitFor();
+        expect(await openSignIn.getAttribute("href")).toBe("https://provider.example/sign-in");
+        expect(
+          await dialog.getByRole("button", { name: "Copy link", exact: true }).isEnabled(),
+        ).toBe(true);
+        expect(await dialog.getByRole("button", { name: "Cancel", exact: true }).isEnabled()).toBe(
+          true,
+        );
+        await dialog.getByRole("status").filter({ hasText: "Waiting for sign-in" }).waitFor();
+        expect(await dialog.getByRole("button", { name: "Continue", exact: true }).count()).toBe(0);
+        expect(await dialog.locator('input[name="wizard-text"]').count()).toBe(0);
+        const [signInPage] = await Promise.all([context.waitForEvent("page"), openSignIn.click()]);
+        await signInPage.getByRole("heading", { name: "Example sign-in" }).waitFor();
+        await signInPage.close();
+        expect(await gateway.getRequests("models.authLogin")).toHaveLength(1);
+        expect(await gateway.getRequests("wizard.next")).toHaveLength(2);
+        await gateway.setMethodResponse("models.authStatus", {
+          ts: 2,
+          providerCapabilities,
+          providers: [
+            {
+              provider: "example",
+              displayName: "Example",
+              status: "ok",
+              profiles: [{ profileId: "example:new", type: "oauth", status: "ok" }],
+            },
+          ],
+        });
+        await gateway.resolveDeferred("wizard.next", { done: true, status: "done" });
+        const saved = page.getByRole("status").filter({ hasText: "Provider credentials saved." });
+        await saved.waitFor();
+        await dialog.waitFor({ state: "detached" });
+        await page.locator('[data-provider-id="example"]').waitFor();
+        await captureProviderProof("login-browser-callback-completed.png", saved);
+      },
+    );
+  });
   it.each([
     { value: "all", label: "Show all Example models" },
     { value: "keep", label: "Keep current restrictions" },

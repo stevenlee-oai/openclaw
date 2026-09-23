@@ -123,6 +123,7 @@ describe("persisted auth profile boundary", () => {
           deviceAuthorizationEndpoint: ["wrong"],
           issuer: "https://auth.x.ai",
           authFlow: "device-code",
+          grantedScope: "openid profile",
         },
         "broken:array": [],
       },
@@ -189,6 +190,7 @@ describe("persisted auth profile boundary", () => {
           tokenEndpoint: "https://auth.x.ai/oauth2/token",
           issuer: "https://auth.x.ai",
           authFlow: "device-code",
+          grantedScope: "openid profile",
         },
       },
       order: {

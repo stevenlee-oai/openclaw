@@ -435,8 +435,11 @@ export function renderWizardStepControls(
       return props.step.executor === "gateway"
         ? renderProgressStep(props)
         : renderContinueStep(props);
-    // These show whatever the step supplies behind a single Continue.
     case "note":
+      return props.busy && (props.step.externalUrl || props.step.deviceCode)
+        ? renderProgressStep(props)
+        : renderContinueStep(props);
+    // Actions require the user's acknowledgement even when they open a browser.
     case "action":
       return renderContinueStep(props);
   }

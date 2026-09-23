@@ -22,9 +22,11 @@ import {
 import { OPENAI_DEFAULT_MODEL } from "./default-models.js";
 import {
   IDENTITY_AUTH_FLOW,
+  isTokenSharingAuthFlow,
   TOKEN_SHARING_AUTH_FLOW,
   TOKEN_SHARING_CLIENT_ID,
   TOKEN_SHARING_ISSUER,
+  TOKEN_SHARING_LEGACY_SCOPE,
   TOKEN_SHARING_REDIRECT_URI,
   TOKEN_SHARING_RESOURCE,
   TOKEN_SHARING_SCOPE,
@@ -129,7 +131,7 @@ async function readCredential(params: {
   owner: LoginOwner;
   nonce?: string;
   previous?: OAuthCredential;
-}): Promise<{ credential: OAuthCredential; subject: string }> {
+}): Promise<{ credential: OAuthCredential & { accountId: string }; subject: string }> {
   const { json, previous, clientId, owner } = params;
   const access = normalizeOptionalString(json.access_token);
   const refresh = normalizeOptionalString(json.refresh_token) ?? previous?.refresh;
@@ -158,11 +160,13 @@ async function readCredential(params: {
   if (!previous && scope === undefined) {
     throw new Error("ChatGPT did not report the granted scopes. Start sign-in again.");
   }
+  const grantedScopes = new Set(scope?.split(/\s+/u));
   const sharing =
     scope === undefined
       ? previous?.authFlow === TOKEN_SHARING_AUTH_FLOW
-      : ["resource.invoke", "chatgpt.tokens.use.direct"].every((required) =>
-          scope.split(/\s+/u).includes(required),
+      : grantedScopes.has("resource.invoke") &&
+        ["chatpass.enable.request.direct", "chatgpt.tokens.use.direct"].some((direct) =>
+          grantedScopes.has(direct),
         );
   return {
     subject,
@@ -176,6 +180,11 @@ async function readCredential(params: {
       idToken,
       clientId,
       issuer: TOKEN_SHARING_ISSUER,
+      // The canonical OAuth owner retains this opaque identity in secret-free
+      // refresh fences; it is not a ChatGPT workspace ID or an inference header.
+      accountId: createHash("sha256")
+        .update(`${TOKEN_SHARING_ISSUER}\0${clientId}\0${subject}`)
+        .digest("hex"),
       tokenEndpoint: TOKEN_ENDPOINT,
       grantedScope: scope,
       authFlow: sharing ? TOKEN_SHARING_AUTH_FLOW : IDENTITY_AUTH_FLOW,
@@ -189,7 +198,9 @@ export async function refreshTokenSharingCredential(
   credential: OAuthCredential,
 ): Promise<OAuthCredential> {
   if (
+    !credential.accountId ||
     !credential.clientId ||
+    credential.clientId === TOKEN_SHARING_CLIENT_ID ||
     credential.issuer !== TOKEN_SHARING_ISSUER ||
     credential.tokenEndpoint !== TOKEN_ENDPOINT
   ) {
@@ -211,15 +222,7 @@ export async function refreshTokenSharingCredential(
 }
 
 /** Local authorization owns the listener, state, verifier, and callback lifetime together. */
-export async function loginTokenSharing(
-  ctx: ProviderAuthContext,
-  clientId: string | undefined = TOKEN_SHARING_CLIENT_ID,
-): Promise<ProviderAuthResult> {
-  if (!clientId) {
-    throw new Error(
-      "ChatGPT token sharing needs an OpenAI-approved OpenClaw OAuth client. This preview build is awaiting registration.",
-    );
-  }
+export async function loginTokenSharing(ctx: ProviderAuthContext): Promise<ProviderAuthResult> {
   const owner = {
     ...ctx,
     signal: AbortSignal.any([
@@ -228,6 +231,53 @@ export async function loginTokenSharing(
     ]),
   };
   owner.assertCurrent?.();
+  // Only the host's authorized profiles participate. A personal sign-in must
+  // never discover another person's registration from the shared auth store.
+  const existingProfiles = (ctx.existingProfiles ?? []).filter(
+    (profile): profile is typeof profile & { credential: OAuthCredential } =>
+      profile.credential.type === "oauth" &&
+      profile.credential.provider === "openai" &&
+      isTokenSharingAuthFlow(profile.credential.authFlow) &&
+      profile.credential.issuer === TOKEN_SHARING_ISSUER &&
+      profile.credential.tokenEndpoint === TOKEN_ENDPOINT &&
+      Boolean(profile.credential.clientId) &&
+      profile.credential.clientId !== TOKEN_SHARING_CLIENT_ID,
+  );
+  const selectedProfileId = existingProfiles.length
+    ? await ctx.prompter.select({
+        message: "Reconnect a ChatGPT account or connect a different account/workspace?",
+        initialValue: existingProfiles[0]!.profileId,
+        options: [
+          ...existingProfiles.map(({ profileId, credential }) => ({
+            value: profileId,
+            label: credential.displayName ?? credential.email ?? profileId,
+            hint: `Reconnect ${profileId} using its existing registration`,
+          })),
+          {
+            value: TOKEN_SHARING_CLIENT_ID,
+            label: "Connect a different ChatGPT account or workspace",
+          },
+        ],
+      })
+    : TOKEN_SHARING_CLIENT_ID;
+  const existingProfile = existingProfiles.find(
+    (profile) => profile.profileId === selectedProfileId,
+  );
+  const clientId = existingProfile?.credential.clientId ?? TOKEN_SHARING_CLIENT_ID;
+  const registering = clientId === TOKEN_SHARING_CLIENT_ID;
+  // Reconnect preserves the registration's requested permissions, replacing only
+  // the obsolete preview spelling. Older static clients keep their narrower scope.
+  const authorizationScope = (
+    existingProfile?.credential.authorizationScope ??
+    (existingProfile ? TOKEN_SHARING_LEGACY_SCOPE : TOKEN_SHARING_SCOPE)
+  )
+    .split(/\s+/u)
+    .map((scope) =>
+      scope === "chatpass.enable.request.direct" ? "chatgpt.tokens.use.direct" : scope,
+    )
+    .join(" ");
+  owner.assertCurrent?.();
+  owner.signal.throwIfAborted();
   const { verifier, challenge } = await generatePKCE();
   const state = generateOAuthState();
   const nonce = generateOAuthState();
@@ -237,17 +287,18 @@ export async function loginTokenSharing(
     client_id: clientId,
     redirect_uri: TOKEN_SHARING_REDIRECT_URI,
     resource: TOKEN_SHARING_RESOURCE,
-    scope: TOKEN_SHARING_SCOPE,
+    scope: authorizationScope,
     code_challenge: challenge,
     code_challenge_method: "S256",
     state,
     nonce,
+    ...(registering ? { agent_name_hint: "OpenClaw" } : {}),
   }).toString();
-  let resolveCode!: (code: string) => void;
+  let resolveCode!: (authorization: { code: string; clientId: string }) => void;
   let rejectCode!: (error: Error) => void;
   let callbackConsumed = false;
   let browserResponse: ServerResponse | undefined;
-  const callback = new Promise<string>((resolve, reject) => {
+  const callback = new Promise<{ code: string; clientId: string }>((resolve, reject) => {
     resolveCode = resolve;
     rejectCode = reject;
   });
@@ -294,8 +345,20 @@ export async function loginTokenSharing(
           "ChatGPT callback did not contain an authorization code. Start sign-in again.",
         );
       }
+      const returnedIds = callbackUrl.searchParams.getAll("client_id");
+      const returnedId = returnedIds[0];
+      // Registration changes the client ID mid-flow. Ordinary reauthorization
+      // may omit it, but must never replace the selected registration.
+      if (
+        returnedIds.length > 1 ||
+        (registering
+          ? !returnedId || !/^oaiapp_[A-Za-z0-9_-]+$/u.test(returnedId)
+          : returnedId !== undefined && returnedId !== clientId)
+      ) {
+        throw new Error("ChatGPT returned an invalid OAuth client ID. Start sign-in again.");
+      }
       browserResponse = response;
-      resolveCode(code);
+      resolveCode({ code, clientId: returnedId ?? clientId });
     } catch (error) {
       response
         .writeHead(400)
@@ -322,6 +385,11 @@ export async function loginTokenSharing(
       ctx.prompter.note(
         [
           "Authorize eligible Responses API calls using your ChatGPT allowance. Token sharing does not grant access to conversations, Codex history, or connected apps.",
+          ...(registering
+            ? []
+            : [
+                "Reconnect with the same ChatGPT user and workspace. To switch either, cancel and choose Connect a different ChatGPT account or workspace.",
+              ]),
           ...(ctx.isRemote
             ? [
                 "Open the sign-in link in your browser. Its localhost:8080 callback must reach this OpenClaw process. For an SSH host, forward the port with: ssh -N -L 8080:127.0.0.1:8080 user@gateway-host",
@@ -335,24 +403,41 @@ export async function loginTokenSharing(
     );
     owner.assertCurrent?.();
     owner.signal.throwIfAborted();
-    const code = await withOAuthLoginAbort(callback, owner.signal);
+    const authorization = await withOAuthLoginAbort(callback, owner.signal);
     const json = await requestJson(
       TOKEN_ENDPOINT,
       owner,
       new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: clientId,
-        code,
+        client_id: authorization.clientId,
+        code: authorization.code,
         code_verifier: verifier,
         redirect_uri: TOKEN_SHARING_REDIRECT_URI,
         resource: TOKEN_SHARING_RESOURCE,
       }),
     );
-    const { credential, subject } = await readCredential({ json, clientId, nonce, owner });
-    const profileName = createHash("sha256")
-      .update(`${TOKEN_SHARING_ISSUER}\0${clientId}\0${subject}`)
-      .digest("hex")
-      .slice(0, 24);
+    const { credential, subject } = await readCredential({
+      json,
+      clientId: authorization.clientId,
+      nonce,
+      owner,
+    });
+    credential.authorizationScope = authorizationScope;
+    if (existingProfile) {
+      const previous = existingProfile.credential;
+      // Refresh fences retain the bound identity but discard ID tokens. Older
+      // preview logins may reconnect using their previously verified subject.
+      const sameIdentity =
+        previous.accountId !== undefined
+          ? previous.accountId === credential.accountId
+          : Boolean(previous.idToken && decodeJwt(previous.idToken).sub === subject);
+      if (!sameIdentity) {
+        throw new Error(
+          "ChatGPT account changed. Reconnect with the original account, or choose Connect a different ChatGPT account or workspace.",
+        );
+      }
+    }
+    const profileName = credential.accountId.slice(0, 24);
     const sharing = credential.authFlow === TOKEN_SHARING_AUTH_FLOW;
     browserResponse
       ?.writeHead(200)
@@ -379,6 +464,11 @@ export async function loginTokenSharing(
           : "ChatGPT sign-in succeeded, but token sharing is disabled. Sign in again and enable sharing, or explicitly choose another inference credential.",
       ],
     });
+    if (existingProfile) {
+      // CLI callers can give profiles custom names. Reconnect replaces the
+      // selected, identity-matched profile so existing session pins still work.
+      result.profiles[0]!.profileId = existingProfile.profileId;
+    }
     if (!sharing) {
       // Identity-only login must not change the model or silently choose another funding source.
       return { profiles: result.profiles, notes: result.notes };

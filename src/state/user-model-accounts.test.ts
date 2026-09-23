@@ -311,6 +311,8 @@ describe("personal model accounts", () => {
           access: "synthetic-inventory-access",
           refresh: "synthetic-inventory-refresh",
           expires: 123,
+          clientId: "synthetic-client",
+          authorizationScope: "openid profile resource.invoke offline_access",
           grantedScope: "openid offline_access",
         },
         assertCurrent() {},
@@ -352,6 +354,8 @@ describe("personal model accounts", () => {
     clearUserProfileAuthLink({ profileId: alice.id, provider: "openai" }, options);
     closeOpenClawStateDatabaseByPath(options.path);
     expect(readUserModelAuthProfile(first.authProfileId, options)?.credential).toMatchObject({
+      clientId: "synthetic-client",
+      authorizationScope: "openid profile resource.invoke offline_access",
       grantedScope: "openid offline_access",
     });
     expect(

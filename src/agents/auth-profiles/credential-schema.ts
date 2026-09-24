@@ -8,6 +8,7 @@ export const oauthCredentialMetadataSchema = z.strictObject({
   clientId: z.string().optional(),
   enterpriseUrl: z.string().optional(),
   projectId: z.string().optional(),
+  /** Provider-owned identity; issuer/clientId registrations bind their verified subject here. */
   accountId: z.string().optional(),
   chatgptPlanType: z.string().optional(),
   /** Non-secret subscription plan captured from external CLI logins. */

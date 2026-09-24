@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AUTH_STORE_VERSION } from "./constants.js";
-import { createApiKeyCredential } from "./credential-fixtures.test-support.js";
+import { createApiKeyCredential, oidcIdentity } from "./credential-fixtures.test-support.js";
 import { resolveAuthProfileOrder } from "./order.js";
 import {
   applyLegacyAuthStore,
@@ -393,6 +393,66 @@ describe("persisted auth profile boundary", () => {
 
     expect(merged.order?.openai).toEqual(["openai:new-login", "openai:aws-sdk"]);
   });
+
+  it.each([
+    {
+      name: "unbound registered identity with a plain main-store account",
+      localIdentity: { ...oidcIdentity(), accountId: undefined },
+      mainIdentity: { accountId: "main-account" },
+      replace: false,
+    },
+    {
+      name: "unbound registered identity with a bound main-store account",
+      localIdentity: { ...oidcIdentity(), accountId: undefined },
+      mainIdentity: oidcIdentity(),
+      replace: false,
+    },
+    {
+      name: "unregistered legacy identities without comparable fields",
+      localIdentity: { email: "legacy@example.test" },
+      mainIdentity: { accountId: "main-account" },
+      replace: true,
+    },
+  ])(
+    "preserves the legacy replacement boundary for $name",
+    ({ localIdentity, mainIdentity, replace }) => {
+      const localProfileId = "openai:default";
+      const mainProfileId = "openai:connected";
+      const localCredential = {
+        type: "oauth" as const,
+        provider: "openai",
+        access: "local-access",
+        refresh: "local-refresh",
+        expires: 1,
+        ...localIdentity,
+      };
+      const merged = mergeAuthProfileStores(
+        {
+          version: AUTH_STORE_VERSION,
+          profiles: {
+            [mainProfileId]: {
+              type: "oauth",
+              provider: "openai",
+              access: "main-access",
+              refresh: "main-refresh",
+              expires: Date.now() + 600_000,
+              ...mainIdentity,
+            },
+          },
+        },
+        {
+          version: AUTH_STORE_VERSION,
+          profiles: { [localProfileId]: localCredential },
+          order: { openai: [localProfileId] },
+          lastGood: { openai: localProfileId },
+        },
+      );
+      expect(merged.profiles[localProfileId]).toEqual(replace ? undefined : localCredential);
+      const selectedProfileId = replace ? mainProfileId : localProfileId;
+      expect(merged.order?.openai).toEqual([selectedProfileId]);
+      expect(merged.lastGood?.openai).toBe(selectedProfileId);
+    },
+  );
 
   it("prefers agent-local provider profiles before inherited main profiles", () => {
     const expires = Date.now() + 60_000;

@@ -21,6 +21,7 @@ import { createSelectedAuthProfileUnavailableError } from "../auth-profiles/sele
 import type { AuthProfileStore } from "../auth-profiles/types.js";
 import { isProfileInCooldown } from "../auth-profiles/usage-state.js";
 import { resolveProviderDirectAuthPlanningEvidence } from "../model-auth-env.js";
+import { resolveProviderModelAuthPolicy } from "../model-auth-policy.js";
 import {
   hasUsableCustomProviderApiKey,
   resolveProviderConfigSecretInput,
@@ -168,6 +169,15 @@ function resolveProfile(
         env: params.env ?? process.env,
       })
     : undefined;
+  const authFlow = credential?.type === "oauth" ? credential.authFlow : undefined;
+  const policy =
+    credential?.type === "oauth" && authFlow
+      ? resolveProviderModelAuthPolicy({
+          provider: credential.provider,
+          mode: credential.type,
+          authFlow,
+        })
+      : undefined;
   const pendingOAuthRefresh =
     credential?.type === "oauth" && isPendingOAuthRefreshFence(credential);
   return {
@@ -175,8 +185,12 @@ function resolveProfile(
     profileId,
     provider: credential?.provider ?? configured?.provider,
     mode: credential?.type ?? configured?.mode,
+    ...(authFlow ? { authFlow, authRequirement: policy?.authRequirement } : {}),
     // Runtime materialization owns secret readiness; only proven-invalid facts are terminal here.
-    readiness: availability === false && !pendingOAuthRefresh ? "unavailable" : "unknown",
+    readiness:
+      policy?.compatible === false || (availability === false && !pendingOAuthRefresh)
+        ? "unavailable"
+        : "unknown",
     cooldown:
       !options.ignoreCooldown &&
       params.authProfileStore &&
@@ -470,12 +484,22 @@ export function prepareAgentRuntimeAuth(
           })
         : undefined,
     resolveProfileAuthMode: (profileId) => params.authProfileStore?.profiles[profileId]?.type,
+    resolveProfileAuthFlow: (profileId) => {
+      const credential = params.authProfileStore?.profiles[profileId];
+      return credential?.type === "oauth" ? credential.authFlow : undefined;
+    },
     routeIntent: params.routeIntent,
     pinnedAuthRequirement: resolveProviderModelRouteAuthRequirement(
       sourcePlan.kind === "required"
         ? sourcePlan.source.mode
         : (sourcePlan.orderedProfiles.find((source) => source.profileId === userPinnedProfileId)
             ?.mode ?? configuredAuthMode),
+      sourcePlan.kind === "required" && sourcePlan.source.kind === "profile"
+        ? sourcePlan.source.authRequirement
+        : sourcePlan.kind === "automatic"
+          ? sourcePlan.orderedProfiles.find((source) => source.profileId === userPinnedProfileId)
+              ?.authRequirement
+          : undefined,
     ),
     env: params.env,
     requestTransportOverrides: params.requestTransportOverrides,
@@ -505,6 +529,7 @@ export function prepareAgentRuntimeAuth(
         provider: params.provider,
         modelId: params.modelId,
         authProfileProvider: profile?.provider,
+        authProfileFlow: profile?.authFlow,
         authProfileMode:
           profile?.mode ??
           (attempt?.kind === "direct" ? attempt.source.mode : selectedConfiguredAuthMode),
@@ -612,6 +637,7 @@ export function prepareAgentRuntimeAuth(
       provider: params.provider,
       modelId: params.modelId,
       authProfileProvider: profile?.provider,
+      authProfileFlow: profile?.authFlow,
       authProfileMode:
         profile?.mode ??
         (attempt?.kind === "direct" ? attempt.source.mode : selectedConfiguredAuthMode),
